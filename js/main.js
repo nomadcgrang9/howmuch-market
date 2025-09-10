@@ -145,6 +145,13 @@ function logout() {
 function showMainApp() {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
+    
+    // =============================================================
+    // 중요: 메인 앱이 표시될 때 그림판 기능을 다시 초기화합니다.
+    // =============================================================
+    initializeDrawing();
+    initializeColorPalette();
+    
     loadMarketplace();
     // loadMyItems and loadTransactionHistory can be called here if implemented
 }
