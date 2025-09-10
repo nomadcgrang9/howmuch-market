@@ -1,4 +1,4 @@
-// 잉글리시 마켓 - 메인 JavaScript 파일 (최종 완성본)
+// 잉글리시 마켓 - 메인 JavaScript 파일 (최종 수정본)
 
 // Global variables
 let currentUser = null;
