@@ -27,31 +27,23 @@ let selectedItemForPurchase = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM 로드 완료, 앱 초기화 시작...');
     
-    // Supabase 초기화를 기다린 후 앱 시작
-    let attempts = 0;
-    const maxAttempts = 20;
-    
-    function waitForSupabase() {
-        attempts++;
-        
+    // 간단한 지연 후 앱 시작 (Supabase 로딩 시간 여유)
+    setTimeout(() => {
+        // Supabase 초기화 시도
         if (typeof window.initializeSupabase === 'function') {
             console.log('🚀 Supabase 초기화 시도 중...');
             window.initializeSupabase().then((success) => {
-                console.log(success ? '✅ Supabase 초기화 성공!' : '⚠️ Supabase 연결 실패, 로컬 모드로 계속');
-                initializeApp();
+                console.log(success ? '✅ Supabase 초기화 성공!' : '⚠️ Supabase 연결 실패, 앱은 계속 실행');
             }).catch((error) => {
                 console.error('❌ Supabase 초기화 오류:', error);
-                initializeApp(); // 오류가 있어도 앱은 시작
             });
-        } else if (attempts < maxAttempts) {
-            setTimeout(waitForSupabase, 200); // 200ms 후 재시도
         } else {
-            console.warn('⚠️ Supabase를 기다리는 시간이 초과됨, 로컬 모드로 시작');
-            initializeApp();
+            console.warn('⚠️ Supabase 초기화 함수를 찾을 수 없음');
         }
-    }
-    
-    waitForSupabase();
+        
+        // Supabase 상태와 관계없이 앱은 시작
+        initializeApp();
+    }, 1000); // 1초 대기
 });
 
 // 애플리케이션의 모든 기능을 시작하는 메인 함수
@@ -59,6 +51,26 @@ async function initializeApp() {
     console.log('🎪 창건샘의 How Much 마켓 초기화 🛍️');
 
     try {
+        // 교사 로그인 버튼 이벤트 리스너 추가 (직접 방식)
+        const teacherLoginBtn = document.getElementById('teacher-login-btn');
+        if (teacherLoginBtn) {
+            console.log('🔗 교사 로그인 버튼 이벤트 리스너 추가');
+            teacherLoginBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                console.log('🎯 교사 로그인 버튼 클릭됨!');
+                
+                if (typeof teacherLogin === 'function') {
+                    console.log('✅ teacherLogin 함수 실행');
+                    teacherLogin();
+                } else {
+                    console.error('❌ teacherLogin 함수를 찾을 수 없음');
+                    alert('오류: 교사 로그인 함수를 찾을 수 없습니다.');
+                }
+            });
+        } else {
+            console.warn('⚠️ 교사 로그인 버튼을 찾을 수 없음');
+        }
+
         initializeDrawing();
         initializeColorPalette();
         
@@ -129,33 +141,63 @@ async function login() {
 }
 
 async function teacherLogin() {
+    console.log('🔑 teacherLogin 함수 호출됨');
+    
     const password = prompt('선생님 비밀번호를 입력하세요:');
     if (password === 'teacher123') {
         try {
-            console.log('🔑 선생님 로그인 시도...');
-            let { data: teachers, error: fetchError } = await window.supabaseClient.from('users').select('*').eq('student_number', '0000');
-            if(fetchError) {
-                console.error('교사 조회 오류:', fetchError);
-                throw fetchError;
-            }
+            console.log('✅ 비밀번호 확인, 선생님 로그인 시도...');
             
-            let teacher = teachers[0];
+            let teacher = null;
+            
+            // Supabase가 준비된 경우 데이터베이스에서 교사 정보 조회
+            if (window.supabaseClient) {
+                console.log('🔍 데이터베이스에서 교사 정보 조회 중...');
+                
+                const { data: teachers, error: fetchError } = await window.supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('student_number', '0000');
+                    
+                if (fetchError) {
+                    console.error('❌ 교사 조회 오류:', fetchError);
+                    throw fetchError;
+                }
+                
+                teacher = teachers && teachers.length > 0 ? teachers[0] : null;
 
-            if (!teacher) {
-                console.log('👨‍🏫 새 교사 계정 생성...');
-                teacher = await window.createRecord('users', {
-                    name: 'Teacher', 
-                    student_number: '0000', 
-                    purchase_points: 999999,
-                    sales_earnings: 999999, 
-                    role: 'teacher', 
-                    is_teacher: true, 
-                    is_active: true
-                });
+                if (!teacher) {
+                    console.log('👨‍🏫 새 교사 계정 생성...');
+                    teacher = await window.createRecord('users', {
+                        name: 'Teacher', 
+                        student_number: '0000', 
+                        purchase_points: 999999,
+                        sales_earnings: 999999, 
+                        role: 'teacher', 
+                        is_teacher: true, 
+                        is_active: true
+                    });
+                    console.log('✅ 새 교사 계정 생성 완료:', teacher);
+                } else {
+                    console.log('✅ 기존 교사 계정 발견:', teacher);
+                }
             } else {
-                console.log('👨‍🏫 기존 교사 계정 발견:', teacher);
+                // Supabase가 없는 경우 로컬 교사 계정 생성
+                console.log('⚠️ Supabase 미준비, 로컬 교사 계정 생성');
+                teacher = {
+                    id: 'teacher-local',
+                    name: 'Teacher (로컬)',
+                    student_number: '0000',
+                    purchase_points: 999999,
+                    sales_earnings: 999999,
+                    role: 'teacher',
+                    is_teacher: true,
+                    is_active: true
+                };
+                console.log('✅ 로컬 교사 계정 생성 완료:', teacher);
             }
             
+            // 교사 로그인 성공 처리
             currentUser = teacher;
             isTeacher = true;
             localStorage.setItem('currentUser', JSON.stringify(teacher));
@@ -165,17 +207,22 @@ async function teacherLogin() {
             // 관리자 대시보드가 있으면 표시, 없으면 일반 앱 유지
             const adminDashboard = document.getElementById('admin-dashboard');
             if (adminDashboard) {
+                console.log('🎛️ 관리자 대시보드 표시');
                 showTeacherModal();
             } else {
                 console.log('ℹ️ 관리자 대시보드 없음, 메인 앱에서 교사 모드 유지');
                 showMessage('선생님으로 로그인되었습니다!', 'success');
             }
+            
         } catch (error) {
             console.error('❌ Teacher login error:', error);
             showMessage('선생님 로그인에 실패했습니다: ' + error.message, 'error');
         }
     } else if (password !== null) { // 취소하지 않았을 때만 오류 메시지 표시
+        console.log('❌ 잘못된 비밀번호');
         showMessage('잘못된 비밀번호입니다', 'error');
+    } else {
+        console.log('ℹ️ 교사 로그인 취소됨');
     }
 }
 
@@ -976,23 +1023,127 @@ async function confirmPurchase(itemId) {
             
         if (updateBuyerError) throw updateBuyerError;
         
+        // 판매자 정보 가져오기 및 포인트 증가 (디버깅 강화)
+        console.log('🔍 판매자 조회 시작 - seller_id:', item.seller_id);
+        
+        const { data: seller, error: sellerFetchError } = await window.supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', item.seller_id)
+            .single();
+            
+        if (sellerFetchError) {
+            console.error('❌ 판매자 정보 조회 오류:', sellerFetchError);
+            console.error('❌ 조회 실패한 seller_id:', item.seller_id);
+            throw new Error('판매자 정보를 찾을 수 없습니다: ' + sellerFetchError.message);
+        }
+        
+        if (!seller) {
+            console.error('❌ 판매자 데이터가 null입니다');
+            throw new Error('판매자 정보가 존재하지 않습니다');
+        }
+        
+        console.log('👤 판매자 정보:', {
+            id: seller.id,
+            name: seller.name,
+            student_number: seller.student_number,
+            current_sales_earnings: seller.sales_earnings
+        });
+        
+        // 판매자 sales_earnings 증가
+        const currentEarnings = seller.sales_earnings || 0;
+        const sellerNewEarnings = currentEarnings + item.price;
+        
+        console.log('💰 판매자 수익 업데이트:');
+        console.log('  - 현재 수익:', currentEarnings);
+        console.log('  - 아이템 가격:', item.price);
+        console.log('  - 새 수익:', sellerNewEarnings);
+        
+        const { data: updatedSeller, error: updateSellerError } = await window.supabaseClient
+            .from('users')
+            .update({ 
+                sales_earnings: sellerNewEarnings,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', item.seller_id)
+            .select()
+            .single();
+            
+        if (updateSellerError) {
+            console.error('❌ 판매자 포인트 업데이트 오류:', updateSellerError);
+            throw new Error('판매자 포인트 업데이트 실패: ' + updateSellerError.message);
+        }
+        
+        if (updatedSeller) {
+            console.log('✅ 판매자 포인트 업데이트 성공!');
+            console.log('  - 업데이트된 데이터:', {
+                name: updatedSeller.name,
+                new_sales_earnings: updatedSeller.sales_earnings,
+                updated_at: updatedSeller.updated_at
+            });
+        } else {
+            console.warn('⚠️ 판매자 업데이트 결과가 없음');
+        }
+        
         // 아이템 상태 변경
         const { error: updateItemError } = await window.supabaseClient
             .from('items')
             .update({ 
                 status: 'sold',
-                buyer_id: currentUser.id
+                buyer_id: currentUser.id,
+                final_price: item.price
             })
             .eq('id', itemId);
             
-        if (updateItemError) throw updateItemError;
+        if (updateItemError) {
+            console.error('❌ 아이템 상태 업데이트 오류:', updateItemError);
+            throw updateItemError;
+        }
         
-        // 로컬 사용자 정보 업데이트
+        // 거래 내역 기록
+        console.log('📝 거래 내역 기록 중...');
+        const { error: transactionError } = await window.supabaseClient
+            .from('transactions')
+            .insert({
+                buyer_id: currentUser.id,
+                seller_id: item.seller_id,
+                item_id: itemId,
+                amount: item.price,
+                status: 'completed'
+            });
+            
+        if (transactionError) {
+            console.error('❌ 거래 내역 기록 오류:', transactionError);
+            // 거래 내역 기록 실패는 치명적이지 않으므로 계속 진행
+        } else {
+            console.log('✅ 거래 내역 기록 완료');
+        }
+        
+        // 로컬 사용자 정보 업데이트 (구매자)
         currentUser.purchase_points = buyerNewPoints;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         updateUserInfo();
         
-        showMessage('구매가 완료되었습니다!', 'success');
+        // 디버깅: 판매자 포인트 재조회해서 확인
+        console.log('🔍 구매 완료 후 판매자 포인트 재확인...');
+        const { data: finalSellerCheck, error: finalCheckError } = await window.supabaseClient
+            .from('users')
+            .select('name, student_number, sales_earnings')
+            .eq('id', item.seller_id)
+            .single();
+            
+        if (finalCheckError) {
+            console.error('❌ 최종 판매자 포인트 확인 오류:', finalCheckError);
+        } else {
+            console.log('✅ 최종 판매자 포인트 확인:');
+            console.log(`  👤 ${finalSellerCheck.name} (${finalSellerCheck.student_number})`);
+            console.log(`  💰 판매 포인트: ${finalSellerCheck.sales_earnings}`);
+            
+            // 성공 메시지에 판매자 정보도 포함
+            showMessage(`구매 완료! 판매자 ${finalSellerCheck.name}님의 포인트: ${finalSellerCheck.sales_earnings}P`, 'success');
+        }
+        
+        // showMessage는 위에서 상세 정보와 함께 이미 표시됨
         closePurchaseModal();
         loadMarketplace(); // 마켓플레이스 새로고침
         
