@@ -75,7 +75,7 @@
                 </button>
                 
                 <div class="text-center">
-                    <button onclick="teacherLogin()" class="text-purple-600 hover:text-purple-800 text-sm font-medium">
+                    <button id="teacher-login-btn" class="text-purple-600 hover:text-purple-800 text-sm font-medium">
                         👩‍🏫 선생님 로그인
                     </button>
                 </div>
@@ -278,7 +278,7 @@
                         class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded">
                     취소
                 </button>
-                <button onclick="confirmPurchase()" 
+                <button onclick="confirmPurchase(selectedItemForPurchase?.id)" 
                         class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
                     지금 구매
                 </button>
@@ -932,16 +932,79 @@
             </div>
         </div>
     </div>
-<!-- Supabase 라이브러리 -->
-<script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.js" defer></script>
 
-<!-- 프로젝트 스크립트 -->
-<script src="js/supabase-config.js" defer></script>
-<script src="js/schema.js" defer></script>
-<script src="js/admin-functions.js" defer></script>
-<script src="js/system-admin.js" defer></script>
-<script src="js/class-system.js" defer></script>
-<script src="js/purchase-system.js" defer></script>
-<script src="js/main.js" defer></script>
+    <!-- Supabase 라이브러리 - 더 안전한 로딩 방식 -->
+<script>
+// 개선된 Supabase 라이브러리 로딩
+(function loadSupabaseSafely() {
+    console.log('🔄 GitHub Pages용 Supabase 라이브러리 로딩 시작...');
+    
+    // 여러 CDN 시도
+    const cdnUrls = [
+        'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
+        'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'
+    ];
+    
+    let currentCdn = 0;
+    
+    function tryLoadCdn() {
+        if (currentCdn >= cdnUrls.length) {
+            console.error('❌ 모든 Supabase CDN 로딩 실패 - 로컬 스토리지 모드로 대체');
+            window.supabaseReady = false;
+            window.supabase = null;
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = cdnUrls[currentCdn];
+        script.crossOrigin = 'anonymous';
+        
+        script.onload = function() {
+            console.log(`✅ Supabase 라이브러리 로딩 성공 (CDN ${currentCdn + 1})`);
+            
+            // 로딩 확인을 더 안전하게
+            setTimeout(() => {
+                if (typeof window.supabase !== 'undefined' && window.supabase && window.supabase.createClient) {
+                    console.log('✅ Supabase 전역 객체 확인 완료');
+                    window.supabaseReady = true;
+                    window.supabaseLib = window.supabase;
+                } else if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
+                    console.log('✅ Supabase 로컬 객체 확인 완료');
+                    window.supabase = supabase;
+                    window.supabaseReady = true;
+                    window.supabaseLib = supabase;
+                } else {
+                    console.warn('⚠️ Supabase 객체 확인 실패, 다음 CDN 시도');
+                    currentCdn++;
+                    setTimeout(tryLoadCdn, 500);
+                }
+            }, 300);
+        };
+        
+        script.onerror = function() {
+            console.warn(`⚠️ CDN ${currentCdn + 1} 로딩 실패, 다음 시도...`);
+            currentCdn++;
+            setTimeout(tryLoadCdn, 500);
+        };
+        
+        document.head.appendChild(script);
+    }
+    
+    // 첫 번째 CDN 시도
+    tryLoadCdn();
+})();
+</script>
+
+<!-- 프로젝트 스크립트 - 순서 중요! -->
+<script src="js/supabase-config.js"></script>
+<script src="js/schema.js"></script>
+<script src="js/admin-functions.js"></script>
+<script src="js/system-admin.js"></script>
+<script src="js/class-system.js"></script>
+<script src="js/purchase-system.js"></script>
+<script src="js/main.js"></script>
+
+<!-- 로컬 스토리지 모드 (백업용) -->
+<script src="js/local-storage-mode.js"></script>
 </body>
 </html>
