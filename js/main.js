@@ -240,54 +240,35 @@ let categoryNames = {
     'other': '기타'
 };
 
-// Initialize application
-document.addEventListener('DOMContentLoaded', async function() {
+// Supabase가 준비되었다는 신호를 받으면 앱 초기화를 시작합니다.
+document.addEventListener('supabaseIsReady', function() {
+    console.log('🤝 Supabase 준비 완료! 마켓 앱을 시작합니다...');
+    initializeApp();
+});
+
+// 애플리케이션의 모든 기능을 시작하는 메인 함수
+async function initializeApp() {
     console.log('🎪 창건샘의 How Much 마켓 초기화 🛍️');
     
-    // Supabase 초기화 먼저 실행
-    try {
-        console.log('🔗 Supabase 연결 시도...');
-        const supabaseReady = await initializeSupabase();
-        
-        if (supabaseReady) {
-            console.log('✅ Supabase 연결 성공!');
-            // 테이블 확인/생성
-            await createSupabaseTables();
-        } else {
-            console.error('❌ Supabase 연결 실패 - 오프라인 모드로 전환');
-        }
-    } catch (error) {
-        console.error('❌ Supabase 초기화 중 오류:', error);
-    }
-    
-    // 기본 요소들 초기화
+    // 이 부분은 기존 'DOMContentLoaded' 안에 있던 내용과 동일합니다.
     try {
         initializeDrawing();
         initializeColorPalette();
-        loadMarketplace();
+        await loadMarketplace();
         
-        // 초기 상태에서는 사용자 정보 숨기기
         const userInfo = document.getElementById('user-info');
-        if (userInfo) {
-            userInfo.style.display = 'none';
-        }
+        if (userInfo) userInfo.style.display = 'none';
         
-        // Check if user is already logged in
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
-            try {
-                currentUser = JSON.parse(savedUser);
-                showMainApp();
-                updateUserInfo();
-            } catch (e) {
-                console.error('저장된 사용자 정보 파싱 오류:', e);
-                localStorage.removeItem('currentUser');
-            }
+            currentUser = JSON.parse(savedUser);
+            showMainApp();
+            updateUserInfo();
         }
     } catch (error) {
-        console.error('초기화 오류:', error);
+        console.error('❌ 앱 초기화 중 심각한 오류 발생:', error);
     }
-});
+}
 
 // User Authentication Functions
 async function login() {
