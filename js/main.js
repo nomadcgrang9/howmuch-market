@@ -101,16 +101,28 @@ async function teacherLogin() {
     const password = prompt('선생님 비밀번호를 입력하세요:');
     if (password === 'teacher123') {
         try {
+            console.log('🔑 선생님 로그인 시도...');
             let { data: teachers, error: fetchError } = await window.supabaseClient.from('users').select('*').eq('student_number', '0000');
-            if(fetchError) throw fetchError;
+            if(fetchError) {
+                console.error('교사 조회 오류:', fetchError);
+                throw fetchError;
+            }
             
             let teacher = teachers[0];
 
             if (!teacher) {
-                 teacher = await window.createRecord('users', {
-                    name: 'Teacher', student_number: '0000', purchase_points: 999999,
-                    sales_earnings: 999999, role: 'teacher', is_teacher: true, is_active: true
+                console.log('👨‍🏫 새 교사 계정 생성...');
+                teacher = await window.createRecord('users', {
+                    name: 'Teacher', 
+                    student_number: '0000', 
+                    purchase_points: 999999,
+                    sales_earnings: 999999, 
+                    role: 'teacher', 
+                    is_teacher: true, 
+                    is_active: true
                 });
+            } else {
+                console.log('👨‍🏫 기존 교사 계정 발견:', teacher);
             }
             
             currentUser = teacher;
@@ -118,12 +130,20 @@ async function teacherLogin() {
             localStorage.setItem('currentUser', JSON.stringify(teacher));
             showMainApp();
             updateUserInfo();
-            showTeacherModal();
+            
+            // 관리자 대시보드가 있으면 표시, 없으면 일반 앱 유지
+            const adminDashboard = document.getElementById('admin-dashboard');
+            if (adminDashboard) {
+                showTeacherModal();
+            } else {
+                console.log('ℹ️ 관리자 대시보드 없음, 메인 앱에서 교사 모드 유지');
+                showMessage('선생님으로 로그인되었습니다!', 'success');
+            }
         } catch (error) {
-            console.error('Teacher login error:', error);
-            showMessage('선생님 로그인에 실패했습니다', 'error');
+            console.error('❌ Teacher login error:', error);
+            showMessage('선생님 로그인에 실패했습니다: ' + error.message, 'error');
         }
-    } else {
+    } else if (password !== null) { // 취소하지 않았을 때만 오류 메시지 표시
         showMessage('잘못된 비밀번호입니다', 'error');
     }
 }
@@ -559,9 +579,9 @@ function createMyItemCard(item) {
                         <i class="fas fa-edit"></i>
                     </button>
                     <button onclick="deleteMyItem('${item.id}')" 
-                            class="text-red-600 hover:text-red-800 text-sm" 
+                            class="text-red-600 hover:text-red-800 text-sm px-2 py-1 border rounded hover:bg-red-50" 
                             title="삭제">
-                        <i class="fas fa-trash"></i>
+                        <i class="fas fa-trash"></i> 삭제
                     </button>
                 </div>
             </div>
@@ -657,32 +677,47 @@ async function editMyItem(itemId) {
 // 내 아이템 삭제 함수
 async function deleteMyItem(itemId) {
     try {
+        console.log('🗑️ 아이템 삭제 시도:', itemId);
+        
         // 삭제 확인
         if (!confirm('정말 이 아이템을 삭제하시겠습니까?\n삭제된 아이템은 복구할 수 없습니다.')) {
+            console.log('❌ 사용자가 삭제 취소');
             return;
         }
 
         // 현재 사용자 확인
         const currentUser = getCurrentUser();
         if (!currentUser) {
+            console.log('❌ 로그인된 사용자 없음');
             showMessage('로그인이 필요합니다.', 'error');
             return;
         }
 
+        console.log('👤 현재 사용자:', currentUser.id);
+
         // 아이템 정보 확인
+        console.log('🔍 아이템 정보 조회 중...');
         const { data: item, error: fetchError } = await window.supabaseClient
             .from('items')
             .select('*')
             .eq('id', itemId)
             .single();
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+            console.error('❌ 아이템 조회 오류:', fetchError);
+            throw fetchError;
+        }
+
+        console.log('📦 아이템 정보:', item);
 
         // 소유권 확인
         if (item.seller_id !== currentUser.id) {
+            console.log('❌ 소유권 없음:', item.seller_id, 'vs', currentUser.id);
             showMessage('본인의 아이템만 삭제할 수 있습니다.', 'error');
             return;
         }
+
+        console.log('✅ 소유권 확인됨, 삭제 진행...');
 
         // 아이템 삭제
         const { error: deleteError } = await window.supabaseClient
@@ -690,16 +725,20 @@ async function deleteMyItem(itemId) {
             .delete()
             .eq('id', itemId);
 
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+            console.error('❌ 삭제 오류:', deleteError);
+            throw deleteError;
+        }
 
+        console.log('✅ 삭제 성공');
         showMessage('아이템이 성공적으로 삭제되었습니다.', 'success');
         
         // 내 아이템 목록 새로고침
         loadMyItems();
         
     } catch (error) {
-        console.error('아이템 삭제 오류:', error);
-        showMessage('아이템 삭제 중 오류가 발생했습니다.', 'error');
+        console.error('❌ 아이템 삭제 오류:', error);
+        showMessage('아이템 삭제 중 오류가 발생했습니다: ' + error.message, 'error');
     }
 }
 
@@ -788,20 +827,57 @@ function loadCanvasImages(container) {
 function openPurchaseModal(itemId) {
     console.log('🛒 구매 모달 열기:', itemId);
     
-    // 간단한 구매 확인 시스템 (모달 대신 confirm 사용)
-    const confirmed = confirm('이 아이템을 구매하시겠습니까?');
-    if (confirmed) {
-        confirmPurchase(itemId);
+    try {
+        if (!currentUser) {
+            showMessage('로그인이 필요합니다.', 'error');
+            return;
+        }
+
+        // 모달 요소 찾기
+        const modal = document.getElementById('purchase-modal');
+        if (!modal) {
+            console.log('❌ 구매 모달을 찾을 수 없음, confirm으로 대체');
+            // 모달이 없으면 간단한 확인 창 사용
+            const confirmed = confirm('이 아이템을 구매하시겠습니까?');
+            if (confirmed) {
+                confirmPurchase(itemId);
+            }
+            return;
+        }
+
+        console.log('✅ 구매 모달 발견, 표시 중...');
+        
+        // 모달 표시
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // 전역 변수에 아이템 ID 저장
+        selectedItemForPurchase = { id: itemId };
+        
+        console.log('🎯 구매 모달 표시 완료');
+        
+    } catch (error) {
+        console.error('❌ 구매 모달 오류:', error);
+        // 오류 발생 시 간단한 확인 창으로 대체
+        const confirmed = confirm('이 아이템을 구매하시겠습니까?');
+        if (confirmed) {
+            confirmPurchase(itemId);
+        }
     }
 }
 
 function closePurchaseModal() {
-    const modal = document.getElementById('purchase-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+    try {
+        const modal = document.getElementById('purchase-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            console.log('✅ 구매 모달 닫기 완료');
+        }
+        selectedItemForPurchase = null;
+    } catch (error) {
+        console.error('❌ 모달 닫기 오류:', error);
     }
-    selectedItemForPurchase = null;
 }
 
 async function confirmPurchase(itemId) {
@@ -811,6 +887,8 @@ async function confirmPurchase(itemId) {
     }
     
     try {
+        console.log('💰 구매 처리 시작:', itemId);
+        
         // 아이템 정보 가져오기
         const { data: item, error: itemError } = await window.supabaseClient
             .from('items')
@@ -818,20 +896,68 @@ async function confirmPurchase(itemId) {
             .eq('id', itemId)
             .single();
 
-        if (itemError) throw itemError;
+        if (itemError) {
+            console.error('❌ 아이템 조회 오류:', itemError);
+            throw itemError;
+        }
+
+        console.log('📦 구매할 아이템:', item);
+        console.log('💳 현재 포인트:', currentUser.purchase_points);
+        console.log('💵 아이템 가격:', item.price);
         
         // 구매 포인트 확인
         if (currentUser.purchase_points < item.price) {
-            showMessage('구매 포인트가 부족합니다', 'error');
+            showMessage(`구매 포인트가 부족합니다. (보유: ${currentUser.purchase_points}, 필요: ${item.price})`, 'error');
+            closePurchaseModal();
             return;
         }
         
-        // 구매 처리 (간단 버전 - 실제로는 구매 요청 시스템 사용)
-        showMessage('구매 요청이 전송되었습니다!', 'success');
+        // 자신의 아이템인지 확인
+        if (item.seller_id === currentUser.id) {
+            showMessage('본인의 아이템은 구매할 수 없습니다.', 'error');
+            closePurchaseModal();
+            return;
+        }
+        
+        console.log('✅ 구매 가능, 거래 처리 중...');
+        
+        // 임시 구매 처리 (실제로는 구매 요청 시스템 사용해야 함)
+        const buyerNewPoints = currentUser.purchase_points - item.price;
+        
+        // 구매자 포인트 차감
+        const { error: updateBuyerError } = await window.supabaseClient
+            .from('users')
+            .update({ purchase_points: buyerNewPoints })
+            .eq('id', currentUser.id);
+            
+        if (updateBuyerError) throw updateBuyerError;
+        
+        // 아이템 상태 변경
+        const { error: updateItemError } = await window.supabaseClient
+            .from('items')
+            .update({ 
+                status: 'sold',
+                buyer_id: currentUser.id
+            })
+            .eq('id', itemId);
+            
+        if (updateItemError) throw updateItemError;
+        
+        // 로컬 사용자 정보 업데이트
+        currentUser.purchase_points = buyerNewPoints;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        updateUserInfo();
+        
+        showMessage('구매가 완료되었습니다!', 'success');
+        closePurchaseModal();
+        loadMarketplace(); // 마켓플레이스 새로고침
+        
+        console.log('✅ 구매 완료!');
         
     } catch (error) {
-        console.error('구매 오류:', error);
-        showMessage('구매 처리 중 오류가 발생했습니다.', 'error');
+        console.error('❌ 구매 오류:', error);
+        showMessage('구매 처리 중 오류가 발생했습니다: ' + error.message, 'error');
+        closePurchaseModal();
     }
 }
 
@@ -1036,3 +1162,14 @@ function toggleSound() {
         }
     }
 }
+
+// 전역 함수 등록 (HTML에서 onclick으로 사용)
+window.deleteMyItem = deleteMyItem;
+window.editMyItem = editMyItem;
+window.openPurchaseModal = openPurchaseModal;
+window.closePurchaseModal = closePurchaseModal;
+window.confirmPurchase = confirmPurchase;
+window.login = login;
+window.teacherLogin = teacherLogin;
+window.logout = logout;
+window.showTab = showTab;
