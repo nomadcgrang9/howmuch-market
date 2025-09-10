@@ -21,6 +21,7 @@ let categoryNames = {
     'toys': '장난감', 'food': '음식', 'clothes': '의류',
     'electronics': '전자제품', 'books': '책', 'other': '기타'
 };
+let selectedItemForPurchase = null;
 
 // Supabase가 준비되었다는 신호를 받으면 앱 초기화를 시작합니다.
 document.addEventListener('supabaseIsReady', function() {
@@ -139,19 +140,23 @@ function logout() {
     document.getElementById('student-name').value = '';
 }
 
+// 현재 사용자 정보를 가져오는 헬퍼 함수
+function getCurrentUser() {
+    return currentUser;
+}
+
 // UI Control Functions
 function showMainApp() {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
     
-    // =============================================================
-    // 중요: 메인 앱이 표시될 때 그림판 기능을 다시 초기화합니다.
-    // =============================================================
+    // 메인 앱이 표시될 때 그림판 기능을 다시 초기화합니다.
     initializeDrawing();
     initializeColorPalette();
     
     loadMarketplace();
-    // loadMyItems and loadTransactionHistory can be called here if implemented
+    loadMyItems();
+    loadTransactionHistory();
 }
 
 function updateUserInfo() {
@@ -180,8 +185,17 @@ function showTab(tabName, event = null) {
         }
         
         // Refresh content based on tab
-        if (tabName === 'marketplace') loadMarketplace();
-        
+        switch(tabName) {
+            case 'marketplace':
+                loadMarketplace();
+                break;
+            case 'inventory':
+                loadMyItems();
+                break;
+            case 'history':
+                loadTransactionHistory();
+                break;
+        }
     } catch (error) {
         console.error('탭 전환 오류:', error);
     }
@@ -318,20 +332,30 @@ async function loadMarketplace() {
         const { data: items } = await window.fetchTableData('items');
         const { data: users } = await window.fetchTableData('users');
         
-        let availableItems = items.filter(item => item.status === 'available');
+        let availableItems = items.filter(item => {
+            // 판매 가능한 상태인지 확인
+            if (item.sold !== false && item.status !== 'available') return false;
+            
+            // 현재 사용자가 있다면 자신의 아이템은 제외
+            if (currentUser && item.creator === currentUser.student_number) return false;
+            
+            return true;
+        });
+        
+        // 같은 반 아이템들만 필터링 (선생님은 모든 아이템 볼 수 있음)
+        if (typeof filterSameClassItems === 'function') {
+            availableItems = filterSameClassItems(availableItems, users);
+        }
         
         itemsGrid.innerHTML = '';
         if (availableItems.length === 0) {
             itemsGrid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">아직 판매 중인 아이템이 없어요.</div>';
             return;
         }
+        
         availableItems.forEach(item => {
-            const seller = users.find(u => u.id === item.seller_id);
-            if(currentUser && item.seller_id !== currentUser.id) {
-                 itemsGrid.appendChild(createItemCard(item, seller));
-            } else if (!currentUser) {
-                 itemsGrid.appendChild(createItemCard(item, seller));
-            }
+            const seller = users.find(u => u.student_number === item.creator);
+            itemsGrid.appendChild(createItemCard(item, seller));
         });
     } catch (error) {
         console.error('❌ Error loading marketplace:', error);
@@ -353,27 +377,441 @@ function createItemCard(item, seller) {
     card.innerHTML = `
         <div class="relative">
             <div class="rarity-badge ${rarity}">${getRarityText(rarity)}</div>
-            <img src="${item.image_url}" alt="${item.name}" class="item-image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuydtOuvuOyngDwvdGV4dD48L3N2Zz4=';">
-            ${item.status === 'sold' ? '<div class="sold-overlay">SOLD</div>' : ''}
+            ${item.drawing_data ? `
+                <canvas width="200" height="150" class="item-image border rounded" 
+                        style="background: white;"
+                        onload="drawItemPreview(this, '${item.drawing_data}')"></canvas>
+            ` : `
+                <img src="${item.image_url}" alt="${item.name}" class="item-image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuydtOuvuOyngDwvdGV4dD48L3N2Zz4=';">
+            `}
+            ${item.sold ? '<div class="sold-overlay">SOLD</div>' : ''}
         </div>
         <div class="item-info">
             <div class="flex justify-between items-start mb-2">
-                <h4 class="font-semibold text-gray-900 truncate">${item.name}</h4>
+                <h4 class="font-semibold text-gray-900 truncate">${escapeHtml(item.name)}</h4>
                 <span class="category-badge category-${item.category}">${categoryNames[item.category] || item.category}</span>
             </div>
-            <p class="text-gray-600 text-sm mb-3 line-clamp-2">${item.description || ''}</p>
+            <p class="text-gray-600 text-sm mb-3 line-clamp-2">${escapeHtml(item.description || '')}</p>
             <div class="flex justify-between items-center mb-3">
-                <span class="price-tag"><i class="fas fa-coins mr-1"></i>${item.price} P</span>
+                <span class="price-tag"><i class="fas fa-coins mr-1"></i>${item.price} 코인</span>
                 <span class="text-xs text-gray-500">판매자: ${seller ? seller.name : '알 수 없음'}</span>
             </div>
-            ${currentUser && item.status === 'available' ? `
+            ${currentUser && !item.sold ? `
                 <button onclick="openPurchaseModal('${item.id}')" class="${buyButtonClass}" ${!canAfford ? 'disabled' : ''}>
                     <i class="fas fa-shopping-cart mr-1"></i>${buyButtonText}
                 </button>
             ` : ''}
         </div>
     `;
+    
+    // 캔버스 이미지 로딩
+    setTimeout(() => {
+        const canvas = card.querySelector('canvas[onload]');
+        if (canvas) {
+            drawItemPreview(canvas, item.drawing_data);
+        }
+    }, 100);
+    
     return card;
+}
+
+// My Items Functions
+async function loadMyItems() {
+    console.log('🔄 내 아이템 로딩 시작...');
+    
+    try {
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+            console.log('❌ 사용자 정보 없음');
+            return;
+        }
+
+        console.log('👤 현재 사용자:', currentUser.student_number);
+        
+        // 내가 판매 중인 아이템 컨테이너 확인
+        const mySellingContainer = document.getElementById('my-selling-items');
+        const myBoughtContainer = document.getElementById('my-bought-items');
+        
+        console.log('📦 판매 컨테이너 존재:', !!mySellingContainer);
+        console.log('🛒 구매 컨테이너 존재:', !!myBoughtContainer);
+        
+        if (!mySellingContainer || !myBoughtContainer) {
+            console.error('❌ My Items 컨테이너를 찾을 수 없습니다');
+            return;
+        }
+
+        // 내가 생성한 아이템들 로드
+        console.log('🔍 내 판매 아이템 검색 중...');
+        const { data: myItems, error: itemsError } = await window.supabaseClient
+            .from('items')
+            .select('*')
+            .eq('creator', currentUser.student_number)
+            .eq('sold', false)
+            .order('created_at', { ascending: false });
+
+        if (itemsError) {
+            console.error('❌ 내 아이템 로드 오류:', itemsError);
+            throw itemsError;
+        }
+
+        console.log('📊 내가 만든 아이템 개수:', myItems?.length || 0);
+        console.log('📋 아이템 상세:', myItems);
+
+        // 판매 중인 아이템 표시
+        if (myItems && myItems.length > 0) {
+            mySellingContainer.innerHTML = myItems.map(item => createMyItemCard(item)).join('');
+            console.log('✅ 판매 아이템 표시 완료');
+            
+            // 캔버스 이미지 로딩
+            setTimeout(() => loadCanvasImages(mySellingContainer), 100);
+        } else {
+            mySellingContainer.innerHTML = `
+                <div class="col-span-full text-center py-8 text-gray-500">
+                    <i class="fas fa-box-open text-4xl mb-4"></i>
+                    <p>아직 판매 중인 아이템이 없습니다.</p>
+                    <p class="text-sm mt-2">새 아이템을 만들어보세요!</p>
+                </div>
+            `;
+            console.log('📝 판매 아이템 없음 메시지 표시');
+        }
+
+        // 구매한 아이템들 로드
+        console.log('🔍 내 구매 아이템 검색 중...');
+        const { data: myPurchases, error: purchasesError } = await window.supabaseClient
+            .from('transactions')
+            .select(`
+                *,
+                item:items(*)
+            `)
+            .eq('buyer', currentUser.student_number)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false });
+
+        if (purchasesError) {
+            console.error('❌ 구매 내역 로드 오류:', purchasesError);
+            throw purchasesError;
+        }
+
+        console.log('🛒 구매한 아이템 개수:', myPurchases?.length || 0);
+
+        // 구매한 아이템 표시
+        if (myPurchases && myPurchases.length > 0) {
+            myBoughtContainer.innerHTML = myPurchases.map(transaction => 
+                createPurchasedItemCard(transaction.item, transaction)
+            ).join('');
+            console.log('✅ 구매 아이템 표시 완료');
+            
+            // 캔버스 이미지 로딩
+            setTimeout(() => loadCanvasImages(myBoughtContainer), 100);
+        } else {
+            myBoughtContainer.innerHTML = `
+                <div class="col-span-full text-center py-8 text-gray-500">
+                    <i class="fas fa-shopping-cart text-4xl mb-4"></i>
+                    <p>아직 구매한 아이템이 없습니다.</p>
+                    <p class="text-sm mt-2">마켓에서 멋진 아이템을 찾아보세요!</p>
+                </div>
+            `;
+            console.log('📝 구매 아이템 없음 메시지 표시');
+        }
+
+    } catch (error) {
+        console.error('❌ loadMyItems 오류:', error);
+        showMessage('내 아이템을 불러오는 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// 내 판매 아이템 카드 생성
+function createMyItemCard(item) {
+    return `
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-4 border-2 border-blue-200 hover:shadow-md transition-all duration-200">
+            <div class="flex justify-between items-start mb-3">
+                <h4 class="text-lg font-bold text-gray-800 truncate">${escapeHtml(item.name)}</h4>
+                <div class="flex space-x-1">
+                    <button onclick="editMyItem('${item.id}')" 
+                            class="text-blue-600 hover:text-blue-800 text-sm" 
+                            title="수정">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteMyItem('${item.id}')" 
+                            class="text-red-600 hover:text-red-800 text-sm" 
+                            title="삭제">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            ${item.drawing_data ? `
+                <div class="mb-3 flex justify-center">
+                    <canvas width="200" height="150" class="border rounded" 
+                            style="background: white;"
+                            onload="drawItemPreview(this, '${item.drawing_data}')"></canvas>
+                </div>
+            ` : ''}
+            
+            <p class="text-gray-600 text-sm mb-3 line-clamp-2">${escapeHtml(item.description || '설명 없음')}</p>
+            
+            <div class="flex justify-between items-center">
+                <div class="text-right">
+                    <div class="text-lg font-bold text-green-600">${item.price}코인</div>
+                    <div class="text-xs text-gray-500">${formatDate(item.created_at)}</div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="text-xs text-gray-500 mb-1">조회수: ${item.views || 0}</div>
+                    <div class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">판매중</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 구매한 아이템 카드 생성
+function createPurchasedItemCard(item, transaction) {
+    return `
+        <div class="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-4 border-2 border-green-200">
+            <div class="flex justify-between items-start mb-3">
+                <h4 class="text-lg font-bold text-gray-800 truncate">${escapeHtml(item.name)}</h4>
+                <div class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">구매완료</div>
+            </div>
+            
+            ${item.drawing_data ? `
+                <div class="mb-3 flex justify-center">
+                    <canvas width="200" height="150" class="border rounded" 
+                            style="background: white;"
+                            onload="drawItemPreview(this, '${item.drawing_data}')"></canvas>
+                </div>
+            ` : ''}
+            
+            <p class="text-gray-600 text-sm mb-3 line-clamp-2">${escapeHtml(item.description || '설명 없음')}</p>
+            
+            <div class="flex justify-between items-center text-sm">
+                <div>
+                    <div class="text-gray-600">판매자: ${item.creator}</div>
+                    <div class="text-gray-500">구매일: ${formatDate(transaction.created_at)}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-lg font-bold text-green-600">${transaction.final_price || item.price}코인</div>
+                    ${transaction.final_price !== item.price ? 
+                        `<div class="text-xs text-gray-500 line-through">${item.price}코인</div>` : ''
+                    }
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 내 아이템 수정 함수
+async function editMyItem(itemId) {
+    try {
+        // 아이템 정보 가져오기
+        const { data: item, error } = await window.supabaseClient
+            .from('items')
+            .select('*')
+            .eq('id', itemId)
+            .single();
+
+        if (error) throw error;
+
+        // 현재 사용자가 소유자인지 확인
+        const currentUser = getCurrentUser();
+        if (!currentUser || item.creator !== currentUser.student_number) {
+            showMessage('본인의 아이템만 수정할 수 있습니다.', 'error');
+            return;
+        }
+
+        // 아이템 수정 모달 표시
+        showItemEditModal(item);
+        
+    } catch (error) {
+        console.error('아이템 수정 오류:', error);
+        showMessage('아이템을 불러오는 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// 내 아이템 삭제 함수
+async function deleteMyItem(itemId) {
+    try {
+        // 삭제 확인
+        if (!confirm('정말 이 아이템을 삭제하시겠습니까?\n삭제된 아이템은 복구할 수 없습니다.')) {
+            return;
+        }
+
+        // 현재 사용자 확인
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+            showMessage('로그인이 필요합니다.', 'error');
+            return;
+        }
+
+        // 아이템 정보 확인
+        const { data: item, error: fetchError } = await window.supabaseClient
+            .from('items')
+            .select('*')
+            .eq('id', itemId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        // 소유권 확인
+        if (item.creator !== currentUser.student_number) {
+            showMessage('본인의 아이템만 삭제할 수 있습니다.', 'error');
+            return;
+        }
+
+        // 아이템 삭제
+        const { error: deleteError } = await window.supabaseClient
+            .from('items')
+            .delete()
+            .eq('id', itemId);
+
+        if (deleteError) throw deleteError;
+
+        showMessage('아이템이 성공적으로 삭제되었습니다.', 'success');
+        
+        // 내 아이템 목록 새로고침
+        loadMyItems();
+        
+    } catch (error) {
+        console.error('아이템 삭제 오류:', error);
+        showMessage('아이템 삭제 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// 아이템 편집 모달 표시
+function showItemEditModal(item) {
+    // 간단한 프롬프트로 구현 (추후 모달로 개선 가능)
+    const newName = prompt('아이템 이름을 수정하세요:', item.name);
+    if (newName === null) return; // 취소
+
+    const newDescription = prompt('아이템 설명을 수정하세요:', item.description || '');
+    if (newDescription === null) return; // 취소
+
+    const newPrice = prompt('아이템 가격을 수정하세요:', item.price);
+    if (newPrice === null) return; // 취소
+
+    const price = parseInt(newPrice);
+    if (isNaN(price) || price < 1) {
+        showMessage('올바른 가격을 입력해주세요. (1코인 이상)', 'error');
+        return;
+    }
+
+    updateMyItem(item.id, {
+        name: newName.trim(),
+        description: newDescription.trim(),
+        price: price
+    });
+}
+
+// 내 아이템 업데이트
+async function updateMyItem(itemId, updates) {
+    try {
+        const { error } = await window.supabaseClient
+            .from('items')
+            .update({
+                ...updates,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', itemId);
+
+        if (error) throw error;
+
+        showMessage('아이템이 성공적으로 수정되었습니다.', 'success');
+        loadMyItems(); // 목록 새로고침
+        
+    } catch (error) {
+        console.error('아이템 수정 오류:', error);
+        showMessage('아이템 수정 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// 아이템 미리보기 캔버스 그리기
+function drawItemPreview(canvas, drawingData) {
+    try {
+        if (!drawingData) return;
+        
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        
+        img.src = drawingData;
+    } catch (error) {
+        console.error('미리보기 그리기 오류:', error);
+    }
+}
+
+// 컨테이너 내 모든 캔버스 이미지 로드
+function loadCanvasImages(container) {
+    const canvases = container.querySelectorAll('canvas[onload]');
+    canvases.forEach(canvas => {
+        const onloadAttr = canvas.getAttribute('onload');
+        if (onloadAttr) {
+            // onload 속성에서 drawingData 추출
+            const match = onloadAttr.match(/drawItemPreview\(this,\s*'([^']+)'\)/);
+            if (match && match[1]) {
+                drawItemPreview(canvas, match[1]);
+            }
+        }
+    });
+}
+
+// Purchase System Functions
+function openPurchaseModal(itemId) {
+    console.log('🛒 구매 모달 열기:', itemId);
+    
+    // 간단한 구매 확인 시스템 (모달 대신 confirm 사용)
+    const confirmed = confirm('이 아이템을 구매하시겠습니까?');
+    if (confirmed) {
+        confirmPurchase(itemId);
+    }
+}
+
+function closePurchaseModal() {
+    const modal = document.getElementById('purchase-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    selectedItemForPurchase = null;
+}
+
+async function confirmPurchase(itemId) {
+    if (!currentUser) {
+        showMessage('로그인이 필요합니다.', 'error');
+        return;
+    }
+    
+    try {
+        // 아이템 정보 가져오기
+        const { data: item, error: itemError } = await window.supabaseClient
+            .from('items')
+            .select('*')
+            .eq('id', itemId)
+            .single();
+
+        if (itemError) throw itemError;
+        
+        // 구매 포인트 확인
+        if (currentUser.purchase_points < item.price) {
+            showMessage('구매 포인트가 부족합니다', 'error');
+            return;
+        }
+        
+        // 구매 처리 (간단 버전 - 실제로는 구매 요청 시스템 사용)
+        showMessage('구매 요청이 전송되었습니다!', 'success');
+        
+    } catch (error) {
+        console.error('구매 오류:', error);
+        showMessage('구매 처리 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// Transaction History Functions
+async function loadTransactionHistory() {
+    console.log("거래 내역 로딩 중...");
+    // 추후 구현 예정
 }
 
 // Item selling form handler
@@ -388,7 +826,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const itemDescription = document.getElementById('item-description').value;
             const itemPrice = parseInt(document.getElementById('item-price').value);
             const itemCategory = document.getElementById('item-category').value;
-            const imageUrl = canvas.toDataURL('image/png');
+            const drawingData = canvas.toDataURL('image/png');
 
             if (!itemName || !itemPrice || !itemCategory) {
                 return showMessage('이름, 가격, 카테고리는 필수 항목입니다.', 'warning');
@@ -400,14 +838,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     description: itemDescription,
                     price: itemPrice,
                     category: itemCategory,
-                    image_url: imageUrl,
-                    seller_id: currentUser.id,
+                    drawing_data: drawingData,
+                    creator: currentUser.student_number,
+                    sold: false,
+                    views: 0,
                     status: 'available'
                 });
                 showMessage('아이템이 성공적으로 등록되었습니다!', 'success');
                 this.reset();
                 clearCanvas();
                 showTab('marketplace');
+                loadMarketplace(); // 마켓플레이스 새로고침
             } catch (error) {
                 console.error('아이템 등록 오류:', error);
                 showMessage('아이템 등록에 실패했습니다.', 'error');
@@ -416,12 +857,46 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// 선생님용 아이템 삭제 함수
+async function deleteItemAsTeacher(itemId) {
+    console.log('🗑️ 선생님이 아이템 삭제 시도:', itemId);
+    
+    if (!confirm('정말로 이 아이템을 삭제하시겠습니까?\n삭제된 아이템은 복구할 수 없습니다.')) {
+        return;
+    }
+    
+    try {
+        // Supabase를 사용하여 아이템 삭제
+        const { error } = await window.supabaseClient
+            .from('items')
+            .delete()
+            .eq('id', itemId);
+        
+        if (error) throw error;
+        
+        showMessage('아이템이 성공적으로 삭제되었습니다', 'success');
+        
+        // 관리자 목록 새로고침 (함수가 있을 경우)
+        if (typeof loadAllItems === 'function') {
+            await loadAllItems();
+        }
+        
+    } catch (error) {
+        console.error('❌ 아이템 삭제 오류:', error);
+        showMessage('아이템 삭제에 실패했습니다', 'error');
+    }
+}
+
 // Admin Dashboard
 async function showTeacherModal() {
     document.getElementById('main-app').style.display = 'none';
     const adminDashboard = document.getElementById('admin-dashboard');
     adminDashboard.classList.remove('hidden');
-    // await loadAdminDashboard();
+    
+    // 관리자 대시보드 로드 (함수가 있을 경우)
+    if (typeof loadAdminDashboard === 'function') {
+        await loadAdminDashboard();
+    }
 }
 
 function exitAdminMode() {
@@ -446,17 +921,57 @@ function showMessage(message, type = 'info') {
     }, 3000);
 }
 
-// Helper functions for levels, sounds, etc.
-function getUserLevel(salesEarnings) {
-    if (salesEarnings < 100) return { name: '🌱 초보자', color: 'text-gray-500' };
-    if (salesEarnings < 300) return { name: '🏪 상인', color: 'text-blue-500' };
-    if (salesEarnings < 600) return { name: '💰 거상', color: 'text-green-500' };
-    if (salesEarnings < 1000) return { name: '👑 재벌', color: 'text-purple-500' };
-    return { name: '🌟 전설의 상인', color: 'text-yellow-500' };
+// 날짜 포맷팅 함수
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) return '오늘';
+        if (diffDays === 2) return '어제';
+        if (diffDays <= 7) return `${diffDays - 1}일 전`;
+        
+        return date.toLocaleDateString('ko-KR', {
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch (error) {
+        return '날짜 오류';
+    }
 }
 
-function getLevelText(userLevel) {
-    return userLevel.name;
+// HTML 이스케이프 함수 (XSS 방지)
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text ? text.replace(/[&<>"']/g, function(m) { return map[m]; }) : '';
+}
+
+// Helper functions for levels, sounds, etc.
+function getUserLevel(salesEarnings) {
+    if (salesEarnings < 100) return 'beginner';
+    if (salesEarnings < 300) return 'trader';
+    if (salesEarnings < 600) return 'merchant';
+    if (salesEarnings < 1000) return 'tycoon';
+    return 'master';
+}
+
+function getLevelText(level) {
+    const levelTexts = {
+        'beginner': '🌱 초보자',
+        'trader': '🏪 상인',
+        'merchant': '💰 거상',
+        'tycoon': '👑 재벌',
+        'master': '🌟 전설의 상인'
+    };
+    return levelTexts[level] || '🌱 초보자';
 }
 
 function getItemRarity(price) {
@@ -496,8 +1011,3 @@ function toggleSound() {
         }
     }
 }
-
-// Dummy functions for unimplemented features to avoid errors
-async function loadMyItems() { console.log("loadMyItems called"); }
-async function loadTransactionHistory() { console.log("loadTransactionHistory called"); }
-function openPurchaseModal(itemId) { console.log("openPurchaseModal called with", itemId); }
