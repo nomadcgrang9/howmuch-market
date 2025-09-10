@@ -945,64 +945,6 @@ function showMessage(message, type = 'info') {
     }
 }
 
-// API Helper Functions - 강화된 버전
-async function fetchTableData(tableName, retryCount = 0) {
-    const maxRetries = 2;
-    const apiUrl = `${API_BASE_URL}tables/${tableName}`;
-    
-    try {
-        console.log('🔗 API 호출:', {
-            url: apiUrl,
-            tableName,
-            attempt: retryCount + 1,
-            maxRetries: maxRetries + 1
-        });
-        
-        const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        
-        console.log('📊 응답 상태:', {
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url,
-            ok: response.ok
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text().catch(() => '응답 텍스트를 읽을 수 없음');
-            throw new Error(`HTTP ${response.status}: ${response.statusText}\n응답: ${errorText}`);
-        }
-        
-        const result = await response.json();
-        console.log('✅ API 응답 성공:', result);
-        return result;
-        
-    } catch (error) {
-        console.error(`❌ API 오류 (시도 ${retryCount + 1}/${maxRetries + 1}):`, {
-            tableName,
-            error: error.message,
-            stack: error.stack
-        });
-        
-        // 네트워크 오류인 경우 재시도
-        if (retryCount < maxRetries && (
-            error.message.includes('fetch') || 
-            error.message.includes('network') ||
-            error.message.includes('Failed to fetch')
-        )) {
-            console.log(`🔄 ${retryCount + 2}초 후 재시도...`);
-            await new Promise(resolve => setTimeout(resolve, (retryCount + 2) * 1000));
-            return fetchTableData(tableName, retryCount + 1);
-        }
-        
-        throw error;
-    }
-}
-
 async function createRecord(tableName, data, retryCount = 0) {
     const maxRetries = 2;
     const apiUrl = `${API_BASE_URL}tables/${tableName}`;
