@@ -1120,9 +1120,11 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
-// API Helper Functions
+// API Helper Functions - GitHub Pages 호환 버전
+const API_BASE_URL = 'https://api.gensparksite.com';
+
 async function fetchTableData(tableName) {
-    const response = await fetch(`tables/${tableName}`);
+    const response = await fetch(`${API_BASE_URL}/tables/${tableName}`);
     if (!response.ok) {
         throw new Error(`Failed to fetch ${tableName}`);
     }
@@ -1130,7 +1132,7 @@ async function fetchTableData(tableName) {
 }
 
 async function createRecord(tableName, data) {
-    const response = await fetch(`tables/${tableName}`, {
+    const response = await fetch(`${API_BASE_URL}/tables/${tableName}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
@@ -1142,7 +1144,7 @@ async function createRecord(tableName, data) {
 }
 
 async function updateRecord(tableName, recordId, data) {
-    const response = await fetch(`tables/${tableName}/${recordId}`, {
+    const response = await fetch(`${API_BASE_URL}/tables/${tableName}/${recordId}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
