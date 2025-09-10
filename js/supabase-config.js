@@ -1,4 +1,4 @@
-// Supabase 설정 및 연결 (안정화 버전)
+// Supabase 설정 및 연결 (안정화 최종 버전)
 const SUPABASE_URL = 'https://sflnnyqdwklcufuohnmj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmbG5ueXFkd2tsY3VmdW9obm1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1MDIzNTksImV4cCI6MjA3MzA3ODM1OX0.BbmYbMYMlLky8uj5YrUnCvVKPZrbpSFtCdOaiEAgNOU';
 
@@ -13,26 +13,45 @@ function initializeSupabaseWhenReady() {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             console.log('✅ Supabase 클라이언트 생성 완료!');
             
-            // 앱의 다른 부분들이 사용할 수 있도록 전역 함수로 만들어줍니다.
+            // =================================================================
+            // 중요: 앱의 다른 모든 파일들이 이 함수들을 사용할 수 있도록 전역(window)으로 공개합니다.
+            // =================================================================
             window.supabaseClient = supabase;
+
             window.fetchTableData = async (tableName) => {
                 const { data, error } = await supabase.from(tableName).select('*');
-                if (error) throw error;
-                return { data };
+                if (error) {
+                    console.error(`Error fetching ${tableName}:`, error);
+                    throw error;
+                }
+                // 기존 코드와의 호환성을 위해 { data: [...] } 형태로 반환
+                return { data }; 
             };
+
             window.createRecord = async (tableName, recordData) => {
                 const { data, error } = await supabase.from(tableName).insert([recordData]).select().single();
-                if (error) throw error;
+                if (error) {
+                    console.error(`Error creating record in ${tableName}:`, error);
+                    throw error;
+                }
                 return data;
             };
+
             window.updateRecord = async (tableName, recordId, updateData) => {
                 const { data, error } = await supabase.from(tableName).update(updateData).eq('id', recordId).select().single();
-                if (error) throw error;
+                if (error) {
+                    console.error(`Error updating record in ${tableName}:`, error);
+                    throw error;
+                }
                 return data;
             };
+
             window.deleteRecord = async (tableName, recordId) => {
                  const { error } = await supabase.from(tableName).delete().eq('id', recordId);
-                 if (error) throw error;
+                 if (error) {
+                    console.error(`Error deleting record in ${tableName}:`, error);
+                    throw error;
+                 }
                  return true;
             };
 
