@@ -184,12 +184,20 @@ function showTab(tabName) {
 
 // Drawing Functions
 function initializeDrawing() {
-    canvas = document.getElementById('drawing-canvas');
-    if (!canvas) return;
+    const oldCanvas = document.getElementById('drawing-canvas');
+    if (!oldCanvas) return;
+
+    // 기존 이벤트 리스너를 모두 제거하기 위해 캔버스를 복제하고 교체합니다.
+    const newCanvas = oldCanvas.cloneNode(true);
+    oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
+    canvas = newCanvas; // 이제부터 이 새로운 캔버스를 사용합니다.
+    
     ctx = canvas.getContext('2d');
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    // 새로운 캔버스에 이벤트 리스너를 딱 한 번만 추가합니다.
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
@@ -234,14 +242,35 @@ function clearCanvas() {
 }
 
 function initializeColorPalette() {
-    document.querySelectorAll('.color-option').forEach(option => {
+    // 그림판 도구들(색상, 브러시, 버튼)이 담긴 부모 요소를 찾습니다.
+    const toolsContainer = document.querySelector('.mt-4.space-y-3');
+    if (!toolsContainer) return;
+
+    // 부모 요소를 통째로 복제해서 모든 하위 요소의 이벤트 리스너를 한번에 제거합니다.
+    const newToolsContainer = toolsContainer.cloneNode(true);
+    toolsContainer.parentNode.replaceChild(newToolsContainer, toolsContainer);
+
+    // 이제 새로운, 깨끗한 도구들에 이벤트 리스너를 추가합니다.
+    newToolsContainer.querySelectorAll('.color-option').forEach(option => {
         option.addEventListener('click', () => selectColor(option.dataset.color));
     });
-    document.getElementById('brush-size').addEventListener('input', function() {
-        brushSize = parseInt(this.value);
-        document.getElementById('brush-size-display').textContent = brushSize;
-    });
-    selectColor('#000000');
+    
+    const brushSlider = newToolsContainer.querySelector('#brush-size');
+    if(brushSlider) {
+        brushSlider.addEventListener('input', function() {
+            brushSize = parseInt(this.value);
+            document.getElementById('brush-size-display').textContent = brushSize;
+        });
+    }
+
+    const eraserBtn = newToolsContainer.querySelector('#eraser-btn');
+    if(eraserBtn) eraserBtn.addEventListener('click', toggleEraser);
+    
+    const clearBtn = newToolsContainer.querySelector('button[onclick="clearCanvas()"]');
+    if(clearBtn) clearBtn.addEventListener('click', clearCanvas);
+
+
+    selectColor('#000000'); // 기본 색상 선택
 }
 
 function selectColor(color) {
