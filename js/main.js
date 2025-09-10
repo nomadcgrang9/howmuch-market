@@ -23,10 +23,35 @@ let categoryNames = {
 };
 let selectedItemForPurchase = null;
 
-// Supabase가 준비되었다는 신호를 받으면 앱 초기화를 시작합니다.
-document.addEventListener('supabaseIsReady', function() {
-    console.log('🤝 Supabase 준비 완료! 마켓 앱을 시작합니다...');
-    initializeApp();
+// DOM이 로드되면 초기화 시작
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM 로드 완료, 앱 초기화 시작...');
+    
+    // Supabase 초기화를 기다린 후 앱 시작
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    function waitForSupabase() {
+        attempts++;
+        
+        if (typeof window.initializeSupabase === 'function') {
+            console.log('🚀 Supabase 초기화 시도 중...');
+            window.initializeSupabase().then((success) => {
+                console.log(success ? '✅ Supabase 초기화 성공!' : '⚠️ Supabase 연결 실패, 로컬 모드로 계속');
+                initializeApp();
+            }).catch((error) => {
+                console.error('❌ Supabase 초기화 오류:', error);
+                initializeApp(); // 오류가 있어도 앱은 시작
+            });
+        } else if (attempts < maxAttempts) {
+            setTimeout(waitForSupabase, 200); // 200ms 후 재시도
+        } else {
+            console.warn('⚠️ Supabase를 기다리는 시간이 초과됨, 로컬 모드로 시작');
+            initializeApp();
+        }
+    }
+    
+    waitForSupabase();
 });
 
 // 애플리케이션의 모든 기능을 시작하는 메인 함수
@@ -36,7 +61,13 @@ async function initializeApp() {
     try {
         initializeDrawing();
         initializeColorPalette();
-        await loadMarketplace();
+        
+        // Supabase가 준비된 경우에만 마켓플레이스 로드
+        if (window.supabaseClient) {
+            await loadMarketplace();
+        } else {
+            console.log('📊 로컬 모드로 마켓플레이스 초기화');
+        }
 
         const userInfo = document.getElementById('user-info');
         if (userInfo) userInfo.style.display = 'none';
@@ -48,7 +79,7 @@ async function initializeApp() {
                 showMainApp();
                 updateUserInfo();
             } catch (e) {
-                localStorage.removeItem('currentUser');
+                 localStorage.removeItem('currentUser');
             }
         }
     } catch (error) {
@@ -71,7 +102,7 @@ async function login() {
 
         if (user) {
             if (user.name !== studentName) {
-                user = await window.updateRecord('users', user.id, { name: studentName });
+                 user = await window.updateRecord('users', user.id, { name: studentName });
             }
         } else {
             user = await window.createRecord('users', {
@@ -399,12 +430,14 @@ function createItemCard(item, seller) {
     card.innerHTML = `
         <div class="relative">
             <div class="rarity-badge ${rarity}">${getRarityText(rarity)}</div>
-            ${item.drawing_data ? `
+            ${item.image_url ? `
                 <canvas width="200" height="150" class="item-image border rounded" 
                         style="background: white;"
-                        onload="drawItemPreview(this, '${item.drawing_data}')"></canvas>
+                        onload="drawItemPreview(this, '${item.image_url}')"></canvas>
             ` : `
-                <img src="${item.image_url}" alt="${item.name}" class="item-image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuydtOuvuOyngDwvdGV4dD48L3N2Zz4=';">
+                <div class="item-image border rounded bg-gray-100 flex items-center justify-center" style="width: 200px; height: 150px;">
+                    <span class="text-gray-500 text-sm">이미지 없음</span>
+                </div>
             `}
             ${item.sold ? '<div class="sold-overlay">SOLD</div>' : ''}
         </div>
@@ -430,7 +463,7 @@ function createItemCard(item, seller) {
     setTimeout(() => {
         const canvas = card.querySelector('canvas[onload]');
         if (canvas) {
-            drawItemPreview(canvas, item.drawing_data);
+            drawItemPreview(canvas, item.image_url);
         }
     }, 100);
     
@@ -586,11 +619,11 @@ function createMyItemCard(item) {
                 </div>
             </div>
             
-            ${item.drawing_data ? `
+            ${item.image_url ? `
                 <div class="mb-3 flex justify-center">
                     <canvas width="200" height="150" class="border rounded" 
                             style="background: white;"
-                            onload="drawItemPreview(this, '${item.drawing_data}')"></canvas>
+                            onload="drawItemPreview(this, '${item.image_url}')"></canvas>
                 </div>
             ` : ''}
             
@@ -619,11 +652,11 @@ function createPurchasedItemCard(item, transaction) {
                 <div class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">구매완료</div>
             </div>
             
-            ${item.drawing_data ? `
+            ${item.image_url ? `
                 <div class="mb-3 flex justify-center">
                     <canvas width="200" height="150" class="border rounded" 
                             style="background: white;"
-                            onload="drawItemPreview(this, '${item.drawing_data}')"></canvas>
+                            onload="drawItemPreview(this, '${item.image_url}')"></canvas>
                 </div>
             ` : ''}
             
@@ -840,9 +873,7 @@ function openPurchaseModal(itemId) {
             // 모달이 없으면 간단한 확인 창 사용
             const confirmed = confirm('이 아이템을 구매하시겠습니까?');
             if (confirmed) {
-                // 임시로 전역 변수 설정 후 바로 구매 함수 호출
-                selectedItemForPurchase = { id: itemId };
-                confirmPurchase();
+                confirmPurchase(itemId);
             }
             return;
         }
@@ -863,8 +894,7 @@ function openPurchaseModal(itemId) {
         // 오류 발생 시 간단한 확인 창으로 대체
         const confirmed = confirm('이 아이템을 구매하시겠습니까?');
         if (confirmed) {
-            selectedItemForPurchase = { id: itemId };
-            confirmPurchase();
+            confirmPurchase(itemId);
         }
     }
 }
@@ -883,23 +913,20 @@ function closePurchaseModal() {
     }
 }
 
-// ======================================================
-// ✨ 여기가 수정된 부분입니다! ✨
-// ======================================================
-async function confirmPurchase() {
-    // 매개변수 대신 전역 변수에서 itemId를 가져옵니다.
-    const itemId = selectedItemForPurchase?.id;
-
+async function confirmPurchase(itemId) {
+    // itemId가 없으면 전역 변수에서 가져오기
+    if (!itemId && selectedItemForPurchase) {
+        itemId = selectedItemForPurchase.id;
+    }
+    
     if (!currentUser) {
         showMessage('로그인이 필요합니다.', 'error');
         return;
     }
     
-    // itemId가 없는 경우를 대비한 안전장치
     if (!itemId) {
-        showMessage('구매할 아이템 정보가 없습니다. 다시 시도해주세요.', 'error');
-        console.error('❌ confirmPurchase 호출 오류: itemId가 없습니다.');
-        closePurchaseModal();
+        console.error('❌ 구매할 아이템 ID가 없습니다');
+        showMessage('구매할 아이템 정보를 찾을 수 없습니다.', 'error');
         return;
     }
     
@@ -1008,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     description: itemDescription,
                     price: itemPrice,
                     category: itemCategory,
-                    drawing_data: drawingData,
+                    image_url: drawingData, // drawing_data 대신 image_url 사용
                     seller_id: currentUser.id,
                     status: 'available'
                 });
