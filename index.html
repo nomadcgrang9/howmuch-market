@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>창건샘의 How Much 마켓 - 영어수업 마켓플레이스</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold cute-font">
+                        🏪 창건샘의 How Much 마켓
+                    </h1>
+                </div>
+                <div id="user-info" class="flex items-center space-x-4" style="display: none;">
+                    <div class="flex items-center space-x-4">
+                        <!-- 구매 포인트 -->
+                        <div class="flex items-center space-x-1">
+                            🛒 <span id="user-purchase-points" class="font-bold">0</span> 구매P
+                        </div>
+                        <!-- 판매 수익 -->
+                        <div class="flex items-center space-x-1">
+                            ✨ <span id="user-sales-earnings" class="font-bold">0</span> 판매P
+                        </div>
+                    </div>
+                    <span id="user-name" class="font-medium"></span>
+                    
+                    <!-- 사운드 토글 버튼 -->
+                    <button id="sound-toggle" onclick="toggleSound()" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm">
+                        <i id="sound-icon" class="fas fa-volume-up mr-1"></i>
+                        <span id="sound-text">사운드</span>
+                    </button>
+                    
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm">
+                        <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Login Section -->
+    <div id="login-section" class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800 cute-font">
+                👋 창건샘의 How Much 마켓 로그인 🌈
+            </h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">학번</label>
+                    <input type="text" id="student-number" maxlength="4" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="예를 들면 4103 이렇게 학년반번호 숫자만 입력">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">이름</label>
+                    <input type="text" id="student-name" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="이름을 입력하세요">
+                </div>
+                
+                <button onclick="login()" class="cute-btn w-full py-3 px-6 rounded-full font-bold text-white shadow-lg">
+                    🎉 마켓 참여하기 🎉
+                </button>
+                
+                <div class="text-center">
+                    <button onclick="teacherLogin()" class="text-purple-600 hover:text-purple-800 text-sm font-medium">
+                        👩‍🏫 선생님 로그인
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="main-app" style="display: none;">
+        <!-- Tab Navigation -->
+        <div class="container mx-auto px-4 py-4">
+            <div class="bg-white rounded-lg shadow-sm">
+                <nav class="flex space-x-1" role="tablist">
+                    <button onclick="showTab('marketplace')" 
+                            class="tab-btn active px-6 py-3 font-medium rounded-t-lg focus:outline-none">
+                        🛒 마켓플레이스
+                    </button>
+                    <button onclick="showTab('sell')" 
+                            class="tab-btn px-6 py-3 font-medium rounded-t-lg focus:outline-none">
+                        🎨 아이템 판매
+                    </button>
+                    <button onclick="showTab('inventory')" 
+                            class="tab-btn px-6 py-3 font-medium rounded-t-lg focus:outline-none">
+                        📦 내 아이템
+                    </button>
+                    <button onclick="showTab('history')" 
+                            class="tab-btn px-6 py-3 font-medium rounded-t-lg focus:outline-none">
+                        📊 거래내역
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="container mx-auto px-4 pb-8">
+            <!-- Marketplace Tab -->
+            <div id="tab-marketplace" class="tab-content">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">
+                        🏦 판매 중인 아이템
+                    </h3>
+                    <div id="items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <!-- Items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sell Item Tab -->
+            <div id="tab-sell" class="tab-content" style="display: none;">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">
+                        🎨 아이템 판매하기
+                    </h3>
+                    <form id="sell-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">아이템 이름</label>
+                            <input type="text" id="item-name" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="무엇을 판매하시나요?">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                            <textarea id="item-description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="아이템을 설명해주세요..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">가격 (포인트)</label>
+                            <input type="number" id="item-price" min="1" max="10000" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="얼마인가요?">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                            <select id="item-category" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="toys">장난감</option>
+                                <option value="food">음식</option>
+                                <option value="clothes">의류</option>
+                                <option value="electronics">전자제품</option>
+                                <option value="books">책</option>
+                                <option value="other">기타</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">아이템 그리기</label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                                <canvas id="drawing-canvas" width="400" height="300" 
+                                        class="border border-gray-200 rounded cursor-crosshair mx-auto block bg-white"></canvas>
+                                <div class="mt-4 space-y-3">
+                                    <!-- 색상 팔레트 -->
+                                    <div class="flex justify-center">
+                                        <div class="grid grid-cols-8 gap-1 p-2 bg-gray-100 rounded">
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#000000" style="background-color: #000000" title="검정"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#FF0000" style="background-color: #FF0000" title="빨간색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#00FF00" style="background-color: #00FF00" title="초록색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#0000FF" style="background-color: #0000FF" title="파란색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#FFFF00" style="background-color: #FFFF00" title="노란색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#FF00FF" style="background-color: #FF00FF" title="자주색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#00FFFF" style="background-color: #00FFFF" title="청록색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#FFA500" style="background-color: #FFA500" title="주황색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#800080" style="background-color: #800080" title="보라색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#FFC0CB" style="background-color: #FFC0CB" title="분홍색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#A52A2A" style="background-color: #A52A2A" title="갈색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#808080" style="background-color: #808080" title="회색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#90EE90" style="background-color: #90EE90" title="연초록"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#FFB6C1" style="background-color: #FFB6C1" title="연분홍"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#87CEEB" style="background-color: #87CEEB" title="하늘색"></div>
+                                            <div class="color-option w-8 h-8 rounded cursor-pointer border-2 border-gray-300" data-color="#FFFFFF" style="background-color: #FFFFFF; border-color: #000000" title="하얀"></div>
+                                        </div>
+                                    </div>
+                                    <!-- 브러시 설정 -->
+                                    <div class="flex justify-center items-center space-x-4">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-sm font-medium">브러시 크기:</span>
+                                            <input type="range" id="brush-size" min="1" max="20" value="3" class="w-20">
+                                            <span id="brush-size-display" class="text-sm w-6 text-center">3</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <button type="button" onclick="toggleEraser()" id="eraser-btn"
+                                                    class="px-3 py-1 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600">
+                                                <i class="fas fa-eraser mr-1"></i>지우개
+                                            </button>
+                                            <button type="button" onclick="clearCanvas()" 
+                                                    class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+                                                <i class="fas fa-trash mr-1"></i>전체 지우기
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- 선택된 색상 표시 -->
+                                    <div class="flex justify-center items-center space-x-2">
+                                        <span class="text-sm font-medium">선택된 색상:</span>
+                                        <div id="current-color" class="w-6 h-6 border-2 border-gray-400 rounded" style="background-color: #000000"></div>
+                                        <span id="current-color-name" class="text-sm">검정</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md">
+                            <i class="fas fa-tag mr-2"></i>
+                            아이템 등록하기
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- My Items Tab -->
+            <div id="tab-inventory" class="tab-content" style="display: none;">
+                <div class="space-y-6">
+                    <!-- Items I'm Selling -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">
+                            🏦 내가 판매 중인 아이템
+                        </h3>
+                        <div id="my-selling-items" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- My selling items will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Items I Bought -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">
+                            🛒 내가 구매한 아이템
+                        </h3>
+                        <div id="my-bought-items" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- My bought items will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History Tab -->
+            <div id="tab-history" class="tab-content" style="display: none;">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">
+                        📊 거래 내역
+                    </h3>
+                    <div id="transaction-history" class="space-y-4">
+                        <!-- Transaction history will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div id="purchase-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-bold mb-4">구매 확인</h3>
+            <div id="purchase-details" class="mb-4">
+                <!-- Purchase details will be filled here -->
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="closePurchaseModal()" 
+                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded">
+                    취소
+                </button>
+                <button onclick="confirmPurchase()" 
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+                    지금 구매
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Edit Modal -->
+    <div id="edit-item-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">아이템 수정하기</h3>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="edit-item-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">아이템 이름</label>
+                    <input type="text" id="edit-item-name" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                    <textarea id="edit-item-description" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">가격 (포인트)</label>
+                    <input type="number" id="edit-item-price" min="1" max="10000" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                    <select id="edit-item-category" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="toys">장난감</option>
+                        <option value="food">음식</option>
+                        <option value="clothes">의류</option>
+                        <option value="electronics">전자제품</option>
+                        <option value="books">책</option>
+                        <option value="other">기타</option>
+                    </select>
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button type="button" onclick="closeEditModal()" 
+                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded">
+                        취소
+                    </button>
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+                        수정 완료
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Teacher Dashboard Modal -->
+    <div id="teacher-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">선생님 관리 페이지</h3>
+                <button onclick="closeTeacherModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Student Management -->
+                <div class="space-y-4">
+                    <h4 class="font-bold text-lg">학생 관리</h4>
+                    <button onclick="resetAllPoints()" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+                        모든 학생 구매 포인트 10,000으로 초기화
+                    </button>
+                    <div id="students-list" class="space-y-2 max-h-60 overflow-y-auto">
+                        <!-- Students list will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Market Statistics -->
+                <div class="space-y-4">
+                    <h4 class="font-bold text-lg">마켓 통계</h4>
+                    <div id="market-stats" class="space-y-2">
+                        <!-- Market statistics will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
