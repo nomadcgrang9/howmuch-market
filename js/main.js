@@ -140,10 +140,48 @@ async function login() {
     }
 }
 
-async function teacherLogin() {
+// 교사 로그인 모달 표시
+function teacherLogin() {
     console.log('🔑 teacherLogin 함수 호출됨');
     
-    const password = prompt('선생님 비밀번호를 입력하세요:');
+    const modal = document.getElementById('teacher-login-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // 비밀번호 입력란 포커스
+        const passwordInput = document.getElementById('teacher-password');
+        if (passwordInput) {
+            setTimeout(() => passwordInput.focus(), 100);
+        }
+    } else {
+        console.error('❌ 교사 로그인 모달을 찾을 수 없음, 기본 프롬프트 사용');
+        legacyTeacherLogin();
+    }
+}
+
+// 교사 로그인 모달 닫기
+function closeTeacherLoginModal() {
+    const modal = document.getElementById('teacher-login-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        
+        // 비밀번호 입력란 초기화
+        const passwordInput = document.getElementById('teacher-password');
+        if (passwordInput) {
+            passwordInput.value = '';
+        }
+    }
+}
+
+// 교사 로그인 확인
+async function confirmTeacherLogin() {
+    const passwordInput = document.getElementById('teacher-password');
+    const password = passwordInput ? passwordInput.value : '';
+    
+    console.log('🔐 입력된 비밀번호 확인:', password ? '있음' : '없음');
+    
     if (password === 'teacher123') {
         try {
             console.log('✅ 비밀번호 확인, 선생님 로그인 시도...');
@@ -214,15 +252,42 @@ async function teacherLogin() {
                 showMessage('선생님으로 로그인되었습니다!', 'success');
             }
             
+            // 로그인 성공 시 모달 닫기
+            closeTeacherLoginModal();
+            
         } catch (error) {
             console.error('❌ Teacher login error:', error);
             showMessage('선생님 로그인에 실패했습니다: ' + error.message, 'error');
+            closeTeacherLoginModal();
         }
-    } else if (password !== null) { // 취소하지 않았을 때만 오류 메시지 표시
-        console.log('❌ 잘못된 비밀번호');
+    } else if (password && password !== '') {
+        console.log('❌ 잘못된 비밀번호:', password);
         showMessage('잘못된 비밀번호입니다', 'error');
     } else {
-        console.log('ℹ️ 교사 로그인 취소됨');
+        console.log('ℹ️ 교사 로그인 취소됨 (빈 비밀번호)');
+        closeTeacherLoginModal();
+    }
+}
+
+// 백업용 기존 prompt 방식 교사 로그인
+async function legacyTeacherLogin() {
+    console.log('🔄 백업 방식 교사 로그인 시도');
+    
+    const password = prompt('선생님 비밀번호를 입력하세요:');
+    console.log('🔐 프롬프트 결과:', password ? '입력됨' : '취소됨');
+    
+    if (password === 'teacher123') {
+        // confirmTeacherLogin과 동일한 로직을 재사용하기 위해
+        // 임시로 input을 만들어서 값을 설정
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<input id="temp-teacher-password" value="${password}">`;
+        document.body.appendChild(tempDiv);
+        
+        await confirmTeacherLogin();
+        
+        document.body.removeChild(tempDiv);
+    } else if (password !== null) {
+        showMessage('잘못된 비밀번호입니다', 'error');
     }
 }
 
@@ -1146,6 +1211,8 @@ async function confirmPurchase(itemId) {
         // showMessage는 위에서 상세 정보와 함께 이미 표시됨
         closePurchaseModal();
         loadMarketplace(); // 마켓플레이스 새로고침
+        loadTransactionHistory(); // 거래 내역 새로고침
+        loadMyItems(); // 내 아이템 새로고침
         
         console.log('✅ 구매 완료!');
         
@@ -1158,8 +1225,145 @@ async function confirmPurchase(itemId) {
 
 // Transaction History Functions
 async function loadTransactionHistory() {
-    console.log("거래 내역 로딩 중...");
-    // 추후 구현 예정
+    console.log("📊 거래 내역 로딩 시작...");
+    
+    if (!currentUser) {
+        console.error('❌ 사용자 로그인 필요');
+        return;
+    }
+    
+    const container = document.getElementById('transaction-history');
+    if (!container) {
+        console.error('❌ 거래 내역 컨테이너를 찾을 수 없음');
+        return;
+    }
+    
+    try {
+        // 내가 관련된 모든 거래 조회 (구매자이거나 판매자인 경우)
+        console.log('🔍 거래 내역 조회 - 사용자 ID:', currentUser.id);
+        
+        const { data: transactions, error } = await window.supabaseClient
+            .from('transactions')
+            .select(`
+                *,
+                items:item_id (
+                    name,
+                    image_url
+                )
+            `)
+            .or(`buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}`)
+            .order('created_at', { ascending: false });
+            
+        if (error) {
+            console.error('❌ 거래 내역 조회 오류:', error);
+            throw error;
+        }
+        
+        console.log('📋 조회된 거래 내역:', transactions.length, '건');
+        console.log('📄 거래 상세:', transactions);
+        
+        if (!transactions || transactions.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-receipt text-4xl mb-4"></i>
+                    <p>거래 내역이 없습니다.</p>
+                    <p class="text-sm">아이템을 구매하거나 판매하면 여기에 표시됩니다.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // 사용자 정보 조회 (이름 표시용)
+        const userIds = [...new Set([
+            ...transactions.map(t => t.buyer_id),
+            ...transactions.map(t => t.seller_id)
+        ])];
+        
+        const { data: users, error: userError } = await window.supabaseClient
+            .from('users')
+            .select('id, name, student_number')
+            .in('id', userIds);
+            
+        if (userError) {
+            console.error('⚠️ 사용자 정보 조회 오류:', userError);
+        }
+        
+        const userMap = {};
+        if (users) {
+            users.forEach(user => {
+                userMap[user.id] = user;
+            });
+        }
+        
+        // 거래 내역 HTML 생성
+        let historyHTML = '';
+        
+        transactions.forEach(transaction => {
+            const buyer = userMap[transaction.buyer_id] || { name: '알 수 없음', student_number: '?' };
+            const seller = userMap[transaction.seller_id] || { name: '알 수 없음', student_number: '?' };
+            const item = transaction.items || { name: '삭제된 아이템', image_url: null };
+            
+            const isBuyer = transaction.buyer_id === currentUser.id;
+            const isSeller = transaction.seller_id === currentUser.id;
+            
+            const transactionType = isBuyer ? '구매' : '판매';
+            const transactionColor = isBuyer ? 'text-blue-600' : 'text-green-600';
+            const partnerName = isBuyer ? seller.name : buyer.name;
+            const partnerNumber = isBuyer ? seller.student_number : buyer.student_number;
+            
+            historyHTML += `
+                <div class="bg-white rounded-lg p-4 shadow-sm border">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                                ${item.image_url ? 
+                                    `<img src="${item.image_url}" class="w-full h-full object-cover">` : 
+                                    '<i class="fas fa-image text-gray-400"></i>'
+                                }
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">${item.name}</div>
+                                <div class="text-sm text-gray-500">
+                                    ${transactionType} • ${partnerName} (${partnerNumber})
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    ${new Date(transaction.created_at).toLocaleDateString('ko-KR', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold ${transactionColor}">
+                                ${isBuyer ? '-' : '+'}${transaction.amount.toLocaleString()}P
+                            </div>
+                            <div class="text-sm text-gray-500">${transactionType}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = historyHTML;
+        console.log('✅ 거래 내역 로딩 완료');
+        
+    } catch (error) {
+        console.error('❌ 거래 내역 로딩 오류:', error);
+        container.innerHTML = `
+            <div class="text-center py-8 text-red-500">
+                <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                <p>거래 내역을 불러오는데 실패했습니다.</p>
+                <p class="text-sm">${error.message}</p>
+                <button onclick="loadTransactionHistory()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    다시 시도
+                </button>
+            </div>
+        `;
+    }
 }
 
 // Item selling form handler
@@ -1366,5 +1570,9 @@ window.closePurchaseModal = closePurchaseModal;
 window.confirmPurchase = confirmPurchase;
 window.login = login;
 window.teacherLogin = teacherLogin;
+window.closeTeacherLoginModal = closeTeacherLoginModal;
+window.confirmTeacherLogin = confirmTeacherLogin;
+window.legacyTeacherLogin = legacyTeacherLogin;
+window.loadTransactionHistory = loadTransactionHistory;
 window.logout = logout;
 window.showTab = showTab;
