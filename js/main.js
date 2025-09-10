@@ -48,7 +48,7 @@ async function initializeApp() {
                 showMainApp();
                 updateUserInfo();
             } catch (e) {
-                 localStorage.removeItem('currentUser');
+                localStorage.removeItem('currentUser');
             }
         }
     } catch (error) {
@@ -71,7 +71,7 @@ async function login() {
 
         if (user) {
             if (user.name !== studentName) {
-                 user = await window.updateRecord('users', user.id, { name: studentName });
+                user = await window.updateRecord('users', user.id, { name: studentName });
             }
         } else {
             user = await window.createRecord('users', {
@@ -840,7 +840,9 @@ function openPurchaseModal(itemId) {
             // 모달이 없으면 간단한 확인 창 사용
             const confirmed = confirm('이 아이템을 구매하시겠습니까?');
             if (confirmed) {
-                confirmPurchase(itemId);
+                // 임시로 전역 변수 설정 후 바로 구매 함수 호출
+                selectedItemForPurchase = { id: itemId };
+                confirmPurchase();
             }
             return;
         }
@@ -861,7 +863,8 @@ function openPurchaseModal(itemId) {
         // 오류 발생 시 간단한 확인 창으로 대체
         const confirmed = confirm('이 아이템을 구매하시겠습니까?');
         if (confirmed) {
-            confirmPurchase(itemId);
+            selectedItemForPurchase = { id: itemId };
+            confirmPurchase();
         }
     }
 }
@@ -880,9 +883,23 @@ function closePurchaseModal() {
     }
 }
 
-async function confirmPurchase(itemId) {
+// ======================================================
+// ✨ 여기가 수정된 부분입니다! ✨
+// ======================================================
+async function confirmPurchase() {
+    // 매개변수 대신 전역 변수에서 itemId를 가져옵니다.
+    const itemId = selectedItemForPurchase?.id;
+
     if (!currentUser) {
         showMessage('로그인이 필요합니다.', 'error');
+        return;
+    }
+    
+    // itemId가 없는 경우를 대비한 안전장치
+    if (!itemId) {
+        showMessage('구매할 아이템 정보가 없습니다. 다시 시도해주세요.', 'error');
+        console.error('❌ confirmPurchase 호출 오류: itemId가 없습니다.');
+        closePurchaseModal();
         return;
     }
     
