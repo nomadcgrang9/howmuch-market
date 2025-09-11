@@ -630,15 +630,30 @@ async function savePointChanges() {
     }
 }
 
-// 새로 추가된 함수들
+// 전역 함수 등록 - DOMContentLoaded 이후 확실하게 등록
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Admin functions 전역 등록 시작');
+    
+    // 새로 추가된 함수들
+    window.showBulkPointGiveModal = showBulkPointGiveModal;
+    window.closeBulkPointModal = closeBulkPointModal;
+    window.executeBulkPointGive = executeBulkPointGive;
+    window.showEditPointsModal = showEditPointsModal;
+    window.showPointHistoryModal = showPointHistoryModal;
+    window.loadCurrentPointsInfo = loadCurrentPointsInfo;
+    window.closeEditPointsModal = closeEditPointsModal;
+    window.showAdminTab = showAdminTab;
+    
+    console.log('✅ Admin functions 전역 등록 완료');
+});
+
+// 즉시 실행도 추가 (보험용)
 window.showBulkPointGiveModal = showBulkPointGiveModal;
 window.closeBulkPointModal = closeBulkPointModal;
 window.executeBulkPointGive = executeBulkPointGive;
 window.showEditPointsModal = showEditPointsModal;
 window.showPointHistoryModal = showPointHistoryModal;
 window.loadCurrentPointsInfo = loadCurrentPointsInfo;
-
-
 window.closeEditPointsModal = closeEditPointsModal;
 // 관리자 탭 전환 함수
 function showAdminTab(tabName) {
@@ -679,11 +694,7 @@ function showAdminTab(tabName) {
                     loadAdminItemsList();
                 }
                 break;
-            case 'class':
-                if (typeof refreshClassOverview === 'function') {
-                    refreshClassOverview();
-                }
-                break;
+
         }
     } else {
         console.error(`❌ ${tabName}-tab 패널을 찾을 수 없습니다.`);
