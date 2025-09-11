@@ -306,6 +306,165 @@ async function forceCompleteItem(itemId) {
     }
 }
 
+// 포인트 일괄 지급 모달 표시
+function showBulkPointGiveModal() {
+    console.log('💰 포인트 일괄 지급 모달 표시');
+    const modal = document.getElementById('bulk-point-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        // 입력값 초기화
+        document.getElementById('bulk-point-amount').value = '';
+        document.getElementById('bulk-point-reason').value = '';
+    } else {
+        console.error('❌ bulk-point-modal 엘리먼트를 찾을 수 없습니다.');
+    }
+}
+
+// 포인트 일괄 지급 모달 닫기
+function closeBulkPointModal() {
+    console.log('❌ 포인트 일괄 지급 모달 닫기');
+    const modal = document.getElementById('bulk-point-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+// 포인트 일괄 지급 실행
+async function executeBulkPointGive() {
+    const amountInput = document.getElementById('bulk-point-amount');
+    const reasonInput = document.getElementById('bulk-point-reason');
+    
+    const amount = parseInt(amountInput.value);
+    const reason = reasonInput.value || '일괄 포인트 지급';
+    
+    if (!amount || amount <= 0) {
+        showMessage('유효한 포인트 수를 입력해주세요.', 'error');
+        return;
+    }
+    
+    if (amount > 50000) {
+        showMessage('한 번에 지급할 수 있는 최대 포인트는 50,000P입니다.', 'error');
+        return;
+    }
+    
+    if (!confirm(`모든 학생에게 ${amount.toLocaleString()}P를 지급하시겠습니까?\n\n사유: ${reason}`)) {
+        return;
+    }
+    
+    try {
+        console.log(`💰 전체 학생 포인트 일괄 지급 시작: ${amount}P`);
+        
+        // 모든 학생 조회 (선생님 제외)
+        const usersData = await fetchTableData('users');
+        const students = usersData.data.filter(user => 
+            user.student_number !== '0000' && !user.is_teacher
+        );
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // 각 학생에게 포인트 지급
+        for (const student of students) {
+            try {
+                const currentPoints = student.purchase_points || 0;
+                const newPoints = currentPoints + amount;
+                
+                await updateRecord('users', student.id, {
+                    purchase_points: newPoints
+                });
+                
+                successCount++;
+                console.log(`✅ ${student.name}(${student.student_number}): ${currentPoints} → ${newPoints}P`);
+                
+            } catch (error) {
+                console.error(`❌ ${student.name} 포인트 지급 실패:`, error);
+                errorCount++;
+            }
+        }
+        
+        // 결과 메시지
+        if (errorCount === 0) {
+            showMessage(`${successCount}명의 학생에게 ${amount.toLocaleString()}P를 성공적으로 지급했습니다.`, 'success');
+        } else {
+            showMessage(`${successCount}명 성공, ${errorCount}명 실패로 포인트 지급이 완료되었습니다.`, 'warning');
+        }
+        
+        // 모달 닫기 및 목록 새로고침
+        closeBulkPointModal();
+        
+        if (typeof loadAdminStudentsList === 'function') {
+            await loadAdminStudentsList();
+        }
+        
+    } catch (error) {
+        console.error('❌ 일괄 포인트 지급 오류:', error);
+        showMessage('포인트 지급 중 오류가 발생했습니다: ' + error.message, 'error');
+    }
+}
+
+// 개별 학생 포인트 수정 모달 표시
+function showEditPointsModal(studentId, studentName) {
+    console.log(`✏️ ${studentName} 포인트 수정 모달 표시`);
+    
+    const modal = document.getElementById('edit-points-modal');
+    const nameSpan = document.getElementById('edit-student-name');
+    
+    if (modal && nameSpan) {
+        nameSpan.textContent = studentName;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // 학생 ID 저장 (나중에 수정 시 사용)
+        modal.setAttribute('data-student-id', studentId);
+        
+        // 현재 포인트 정보 로드
+        loadCurrentPointsInfo(studentId);
+        
+    } else {
+        console.error('❌ edit-points-modal 또는 edit-student-name 엘리먼트를 찾을 수 없습니다.');
+    }
+}
+
+// 현재 포인트 정보 로드
+async function loadCurrentPointsInfo(studentId) {
+    try {
+        const student = await fetchRecord('users', studentId);
+        if (student) {
+            // 현재 포인트 정보 표시
+            const purchaseSpan = document.getElementById('current-purchase-points');
+            const salesSpan = document.getElementById('current-sales-earnings');
+            
+            if (purchaseSpan) {
+                purchaseSpan.textContent = (student.purchase_points || 0).toLocaleString() + 'P';
+            }
+            if (salesSpan) {
+                salesSpan.textContent = (student.sales_earnings || 0).toLocaleString() + 'P';
+            }
+            
+            // 입력 필드 초기화
+            document.getElementById('point-change-amount').value = '';
+            document.getElementById('point-change-reason').value = '';
+            
+            const actionSelect = document.getElementById('point-change-action');
+            if (actionSelect) {
+                actionSelect.value = 'add';
+            }
+        }
+    } catch (error) {
+        console.error('❌ 학생 정보 로드 오류:', error);
+    }
+}
+
+// 포인트 변경 이력 모달 표시
+function showPointHistoryModal(studentId, studentName) {
+    console.log(`📋 ${studentName} 포인트 변경 이력 표시`);
+    
+    // 간단한 알림으로 대체 (향후 구현 예정)
+    alert(`${studentName}의 포인트 변경 이력\n\n이 기능은 향후 업데이트에서 구현될 예정입니다.`);
+}
+
 // 전역으로 내보내기
 window.loadAdminStudentsList = loadAdminStudentsList;
 window.loadAdminItemsList = loadAdminItemsList;
@@ -314,3 +473,205 @@ window.loadMarketStatistics = loadMarketStatistics;
 window.refreshStudentsList = refreshStudentsList;
 window.refreshItemsList = refreshItemsList;
 window.forceCompleteItem = forceCompleteItem;
+
+// 개별 포인트 수정 모달 닫기
+function closeEditPointsModal() {
+    console.log('❌ 포인트 수정 모달 닫기');
+    const modal = document.getElementById('edit-points-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.removeAttribute('data-student-id');
+    }
+}
+
+// 포인트 지급/차감
+async function adjustPoints(action) {
+    const modal = document.getElementById('edit-points-modal');
+    const studentId = modal?.getAttribute('data-student-id');
+    const adjustmentInput = document.getElementById('point-adjustment');
+    const reasonInput = document.getElementById('point-change-reason');
+    
+    if (!studentId) {
+        showMessage('학생 정보를 찾을 수 없습니다.', 'error');
+        return;
+    }
+    
+    const adjustment = parseInt(adjustmentInput.value);
+    if (!adjustment || adjustment === 0) {
+        showMessage('유효한 포인트 수를 입력해주세요.', 'error');
+        return;
+    }
+    
+    const reason = reasonInput.value || (action === 'add' ? '포인트 지급' : '포인트 차감');
+    const finalAdjustment = action === 'subtract' ? -Math.abs(adjustment) : Math.abs(adjustment);
+    
+    try {
+        console.log(`${action === 'add' ? '➕' : '➖'} 포인트 조정: ${finalAdjustment}P`);
+        
+        // 현재 학생 정보 조회
+        const student = await fetchRecord('users', studentId);
+        if (!student) {
+            throw new Error('학생 정보를 찾을 수 없습니다.');
+        }
+        
+        const currentPoints = student.purchase_points || 0;
+        const newPoints = Math.max(0, currentPoints + finalAdjustment); // 음수 방지
+        
+        if (currentPoints + finalAdjustment < 0) {
+            showMessage('포인트는 0 이하로 떨어질 수 없습니다.', 'error');
+            return;
+        }
+        
+        const actionText = action === 'add' ? '지급' : '차감';
+        if (!confirm(`${student.name}에게 ${Math.abs(finalAdjustment).toLocaleString()}P를 ${actionText}하시겠습니까?\n\n현재: ${currentPoints.toLocaleString()}P → 변경 후: ${newPoints.toLocaleString()}P\n사유: ${reason}`)) {
+            return;
+        }
+        
+        // 포인트 업데이트
+        await updateRecord('users', studentId, {
+            purchase_points: newPoints
+        });
+        
+        showMessage(`${student.name}에게 ${Math.abs(finalAdjustment).toLocaleString()}P를 ${actionText}했습니다.`, 'success');
+        
+        // 입력값 초기화 및 현재 포인트 정보 다시 로드
+        adjustmentInput.value = '';
+        reasonInput.value = '';
+        await loadCurrentPointsInfo(studentId);
+        
+        // 학생 목록 새로고침
+        if (typeof loadAdminStudentsList === 'function') {
+            await loadAdminStudentsList();
+        }
+        
+    } catch (error) {
+        console.error(`❌ 포인트 ${action === 'add' ? '지급' : '차감'} 오류:`, error);
+        showMessage(`포인트 조정 중 오류가 발생했습니다: ${error.message}`, 'error');
+    }
+}
+
+// 포인트 직접 설정
+async function savePointChanges() {
+    const modal = document.getElementById('edit-points-modal');
+    const studentId = modal?.getAttribute('data-student-id');
+    const newPointsInput = document.getElementById('new-purchase-points');
+    const reasonInput = document.getElementById('point-change-reason');
+    
+    if (!studentId) {
+        showMessage('학생 정보를 찾을 수 없습니다.', 'error');
+        return;
+    }
+    
+    const newPoints = parseInt(newPointsInput.value);
+    if (newPoints === null || newPoints === undefined || newPoints < 0) {
+        showMessage('유효한 포인트 수를 입력해주세요. (0 이상)', 'error');
+        return;
+    }
+    
+    if (newPoints > 999999) {
+        showMessage('포인트는 999,999P를 초과할 수 없습니다.', 'error');
+        return;
+    }
+    
+    const reason = reasonInput.value || '포인트 직접 설정';
+    
+    try {
+        console.log(`💾 포인트 직접 설정: ${newPoints}P`);
+        
+        // 현재 학생 정보 조회
+        const student = await fetchRecord('users', studentId);
+        if (!student) {
+            throw new Error('학생 정보를 찾을 수 없습니다.');
+        }
+        
+        const currentPoints = student.purchase_points || 0;
+        
+        if (!confirm(`${student.name}의 구매 포인트를 ${newPoints.toLocaleString()}P로 설정하시겠습니까?\n\n현재: ${currentPoints.toLocaleString()}P → 변경 후: ${newPoints.toLocaleString()}P\n사유: ${reason}`)) {
+            return;
+        }
+        
+        // 포인트 업데이트
+        await updateRecord('users', studentId, {
+            purchase_points: newPoints
+        });
+        
+        showMessage(`${student.name}의 포인트를 ${newPoints.toLocaleString()}P로 설정했습니다.`, 'success');
+        
+        // 모달 닫기
+        closeEditPointsModal();
+        
+        // 학생 목록 새로고침
+        if (typeof loadAdminStudentsList === 'function') {
+            await loadAdminStudentsList();
+        }
+        
+    } catch (error) {
+        console.error('❌ 포인트 설정 오류:', error);
+        showMessage(`포인트 설정 중 오류가 발생했습니다: ${error.message}`, 'error');
+    }
+}
+
+// 새로 추가된 함수들
+window.showBulkPointGiveModal = showBulkPointGiveModal;
+window.closeBulkPointModal = closeBulkPointModal;
+window.executeBulkPointGive = executeBulkPointGive;
+window.showEditPointsModal = showEditPointsModal;
+window.showPointHistoryModal = showPointHistoryModal;
+window.loadCurrentPointsInfo = loadCurrentPointsInfo;
+// 순위별 포인트 지급
+async function giveRankPoints(rank, points) {
+    try {
+        console.log(`🏆 ${rank}등에게 ${points}P 지급 시작`);
+        
+        if (!confirm(`현재 판매수익 ${rank}등 학생에게 ${points.toLocaleString()}P를 지급하시겠습니까?`)) {
+            return;
+        }
+        
+        // 모든 학생 조회 (선생님 제외)
+        const usersData = await fetchTableData('users');
+        const students = usersData.data.filter(user => 
+            user.student_number !== '0000' && !user.is_teacher
+        );
+        
+        if (students.length === 0) {
+            showMessage('등록된 학생이 없습니다.', 'error');
+            return;
+        }
+        
+        // 판매 수익 기준으로 내림차순 정렬
+        students.sort((a, b) => (b.sales_earnings || 0) - (a.sales_earnings || 0));
+        
+        // 해당 순위 학생 확인
+        if (students.length < rank) {
+            showMessage(`${rank}등 학생이 없습니다. (전체 학생: ${students.length}명)`, 'error');
+            return;
+        }
+        
+        const targetStudent = students[rank - 1]; // 0-based index
+        const currentPoints = targetStudent.purchase_points || 0;
+        const newPoints = currentPoints + points;
+        
+        // 포인트 지급
+        await updateRecord('users', targetStudent.id, {
+            purchase_points: newPoints
+        });
+        
+        const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
+        showMessage(`${rankEmoji} ${rank}등 ${targetStudent.name}에게 ${points.toLocaleString()}P를 지급했습니다!\n(${currentPoints.toLocaleString()}P → ${newPoints.toLocaleString()}P)`, 'success');
+        
+        // 학생 목록 새로고침
+        if (typeof loadAdminStudentsList === 'function') {
+            await loadAdminStudentsList();
+        }
+        
+    } catch (error) {
+        console.error(`❌ ${rank}등 포인트 지급 오류:`, error);
+        showMessage(`포인트 지급 중 오류가 발생했습니다: ${error.message}`, 'error');
+    }
+}
+
+window.closeEditPointsModal = closeEditPointsModal;
+window.adjustPoints = adjustPoints;
+window.savePointChanges = savePointChanges;
+window.giveRankPoints = giveRankPoints;
