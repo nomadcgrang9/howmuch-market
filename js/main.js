@@ -327,8 +327,12 @@ async function confirmTeacherLogin() {
                 showMessage('선생님으로 로그인되었습니다!', 'success');
             }
             
-            // 로그인 성공 시 모달 닫기
+            // 로그인 성공 시 모달 닫기 및 관리자 대시보드로 전환
             closeTeacherLoginModal();
+            
+            // 관리자 대시보드로 자동 전환
+            console.log('🎯 관리자 대시보드로 자동 전환...');
+            showAdminDashboard();
             
         } catch (error) {
             console.error('❌ Teacher login error:', error);
@@ -367,15 +371,32 @@ async function legacyTeacherLogin() {
 }
 
 function logout() {
+    console.log('🚪 로그아웃 시작...');
     currentUser = null;
     isTeacher = false;
     localStorage.removeItem('currentUser');
+    
+    // 관리자 대시보드 숨기기
+    const adminDashboard = document.getElementById('admin-dashboard');
+    if (adminDashboard) {
+        adminDashboard.classList.add('hidden');
+        adminDashboard.style.display = 'none';
+    }
+    
+    // 메인 앱 화면 복원
+    const app = document.getElementById('app');
+    if (app) {
+        app.style.display = 'block';
+    }
+    
+    // 로그인 화면 표시
     document.getElementById('login-section').style.display = 'block';
     document.getElementById('main-app').style.display = 'none';
-    document.getElementById('admin-dashboard').classList.add('hidden');
     document.getElementById('user-info').style.display = 'none';
     document.getElementById('student-number').value = '';
     document.getElementById('student-name').value = '';
+    
+    console.log('✅ 로그아웃 완료 - 메인 화면으로 복귀');
 }
 
 // 현재 사용자 정보를 가져오는 헬퍼 함수
@@ -447,6 +468,54 @@ function showTab(tabName, event = null) {
         }
     } catch (error) {
         console.error('탭 전환 오류:', error);
+    }
+}
+
+// 관리자 대시보드 표시 함수
+function showAdminDashboard() {
+    console.log('🎯 관리자 대시보드 표시 중...');
+    
+    try {
+        // 기본 앱 화면 숨기기
+        const app = document.getElementById('app');
+        if (app) {
+            app.style.display = 'none';
+        }
+        
+        // 관리자 대시보드 표시
+        const adminDashboard = document.getElementById('admin-dashboard');
+        if (adminDashboard) {
+            adminDashboard.classList.remove('hidden');
+            adminDashboard.style.display = 'block';
+            
+            // 관리자 데이터 로드
+            console.log('📊 관리자 데이터 로딩 시작...');
+            
+            setTimeout(() => {
+                if (typeof loadAdminItemsList === 'function') {
+                    console.log('📦 아이템 목록 로딩...');
+                    loadAdminItemsList();
+                }
+                if (typeof loadAdminStudentsList === 'function') {
+                    console.log('👥 학생 목록 로딩...');
+                    loadAdminStudentsList();
+                }
+                if (typeof loadRecentTransactions === 'function') {
+                    console.log('📊 거래 내역 로딩...');
+                    loadRecentTransactions();
+                }
+                if (typeof loadMarketStatistics === 'function') {
+                    console.log('📈 시장 통계 로딩...');
+                    loadMarketStatistics();
+                }
+            }, 100); // 약간의 지연으로 DOM 렌더링 완료 후 실행
+            
+        } else {
+            console.error('❌ admin-dashboard 엘리먼트를 찾을 수 없습니다.');
+        }
+        
+    } catch (error) {
+        console.error('❌ 관리자 대시보드 표시 오류:', error);
     }
 }
 
@@ -1535,11 +1604,14 @@ async function deleteItemAsTeacher(itemId) {
         // 관리자 목록 새로고침
         console.log('🔄 아이템 목록 새로고침 시도...');
         if (typeof refreshItemsList === 'function') {
+            console.log('✅ refreshItemsList 함수 호출');
             await refreshItemsList();
         } else if (typeof loadAdminItemsList === 'function') {
+            console.log('✅ loadAdminItemsList 함수 호출');
             await loadAdminItemsList();
         } else {
-            console.warn('⚠️ 아이템 목록 새로고침 함수를 찾을 수 없음');
+            console.warn('⚠️ 아이템 목록 새로고침 함수를 찾을 수 없음 - 페이지 새로고침 권장');
+            showMessage('아이템이 삭제되었습니다. 목록을 다시 불러오려면 페이지를 새로고침하세요.', 'success');
         }
         
     } catch (error) {
@@ -1698,5 +1770,6 @@ window.confirmTeacherLogin = confirmTeacherLogin;
 window.legacyTeacherLogin = legacyTeacherLogin;
 window.loadTransactionHistory = loadTransactionHistory;
 window.deleteItemAsTeacher = deleteItemAsTeacher;
+window.showAdminDashboard = showAdminDashboard;
 window.logout = logout;
 window.showTab = showTab;
