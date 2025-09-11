@@ -1597,9 +1597,13 @@ async function deleteItemAsTeacher(itemId) {
             .delete()
             .eq('id', itemId);
         
-        if (error) throw error;
+        if (error) {
+            console.error('❌ 아이템 삭제 실패:', error);
+            throw error;
+        }
         
-        showMessage('아이템이 성공적으로 삭제되었습니다', 'success');
+        console.log('✅ 아이템 삭제 성공');
+        showMessage('✅ 아이템이 성공적으로 삭제되었습니다!', 'success');
         
         // 관리자 목록 새로고침
         console.log('🔄 아이템 목록 새로고침 시도...');
@@ -1616,7 +1620,8 @@ async function deleteItemAsTeacher(itemId) {
         
     } catch (error) {
         console.error('❌ 아이템 삭제 오류:', error);
-        showMessage('아이템 삭제에 실패했습니다', 'error');
+        alert('❌ 아이템 삭제에 실패했습니다!\n\n오류 내용: ' + error.message + '\n\n다시 시도해보세요.');
+        showMessage('❌ 아이템 삭제 실패: ' + error.message, 'error');
     }
 }
 
