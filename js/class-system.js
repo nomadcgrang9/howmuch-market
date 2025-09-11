@@ -688,6 +688,7 @@ window.resetItems = resetItems;
 window.resetTransactions = resetTransactions;
 window.resetAllData = resetAllData;
 window.resetAllPointsWithConfirm = resetAllPointsWithConfirm;
+window.resetAllPoints = resetAllPointsWithConfirm; // HTML onclick 호환성을 위한 별칭
 window.showClassResetModal = showClassResetModal;
 window.closeClassResetModal = closeClassResetModal;
 window.refreshClassOverview = refreshClassOverview;
