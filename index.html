@@ -393,188 +393,112 @@
 
         <!-- 관리자 메인 컨텐츠 -->
         <div class="container mx-auto px-4 py-8">
-            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                
-                <!-- 학생 관리 패널 -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">
-                            👥 학생 관리 (포인트 시스템)
-                        </h2>
-                        <button onclick="refreshStudentsList()" 
-                                class="text-blue-600 hover:text-blue-800 text-sm">
-                            🔄 새로고침
+            <!-- 관리자 탭 네비게이션 -->
+            <div class="mb-8">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8">
+                        <button onclick="showAdminTab('students')" 
+                                class="admin-tab-btn active border-b-2 border-purple-500 py-2 px-1 text-purple-600 font-medium text-sm">
+                            👥 학생 관리
                         </button>
-                    </div>
-                    
-                    <!-- 일괄 관리 버튼들 -->
-                    <div class="grid grid-cols-2 gap-3 mb-6">
-                        <button onclick="resetAllPoints()" 
-                                class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded text-sm">
-                            🔄 전체 구매포인트 10,000P 초기화
-                        </button>
-                        <button onclick="showBulkPointGiveModal()" 
-                                class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm">
-                            💰 전체 학생 포인트 지급
-                        </button>
-                    </div>
-                    
-                    <!-- 순위별 빠른 포인트 지급 -->
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                        <h4 class="font-medium text-gray-800 mb-3">🏆 순위별 포인트 지급 (판매수익 기준)</h4>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button onclick="giveRankPoints(1, 1000)" 
-                                    class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-2 px-3 rounded">
-                                🥇 1등 +1000P
-                            </button>
-                            <button onclick="giveRankPoints(2, 700)" 
-                                    class="bg-gray-400 hover:bg-gray-500 text-white text-xs py-2 px-3 rounded">
-                                🥈 2등 +700P
-                            </button>
-                            <button onclick="giveRankPoints(3, 500)" 
-                                    class="bg-orange-400 hover:bg-orange-500 text-white text-xs py-2 px-3 rounded">
-                                🥉 3등 +500P
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-600 mt-2">※ 현재 판매수익 순위를 기준으로 자동 지급됩니다</p>
-                    </div>
-                    
-                    <!-- 학생 목록 -->
-                    <div id="admin-students-list" class="space-y-3 max-h-96 overflow-y-auto">
-                        <p class="text-gray-500 text-center py-4">학생 목록을 불러오는 중...</p>
-                    </div>
-                </div>
-
-                <!-- 아이템 관리 패널 -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">
+                        <button onclick="showAdminTab('items')" 
+                                class="admin-tab-btn border-b-2 border-transparent py-2 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
                             📦 아이템 관리
-                        </h2>
-                        <button onclick="refreshItemsList()" 
-                                class="text-blue-600 hover:text-blue-800 text-sm">
-                            🔄 새로고침
                         </button>
-                    </div>
-                    
-                    <!-- 아이템 통계 -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="bg-blue-50 p-3 rounded text-center">
-                            <div class="text-2xl font-bold text-blue-600" id="total-items-count">-</div>
-                            <div class="text-sm text-gray-600">총 아이템</div>
+                        <button onclick="showAdminTab('class')" 
+                                class="admin-tab-btn border-b-2 border-transparent py-2 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
+                            🏫 반별 관리
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- 탭 콘텐츠 -->
+            <div id="admin-tab-content">
+                
+                <!-- 학생 관리 탭 -->
+                <div id="students-tab" class="admin-tab-panel">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                👥 학생 관리 (포인트 시스템)
+                            </h2>
+                            <button onclick="refreshStudentsList()" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm">
+                                🔄 새로고침
+                            </button>
                         </div>
-                        <div class="bg-green-50 p-3 rounded text-center">
-                            <div class="text-2xl font-bold text-green-600" id="available-items-count">-</div>
-                            <div class="text-sm text-gray-600">판매중</div>
+                        
+                        <!-- 일괄 관리 버튼 -->
+                        <div class="mb-6">
+                            <button onclick="showBulkPointGiveModal()" 
+                                    class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm w-full">
+                                💰 전체 학생 포인트 지급
+                            </button>
                         </div>
-                        <div class="bg-red-50 p-3 rounded text-center">
-                            <div class="text-2xl font-bold text-red-600" id="sold-items-count">-</div>
-                            <div class="text-sm text-gray-600">판매완료</div>
+                        
+                        <!-- 학생 목록 -->
+                        <div id="admin-students-list" class="space-y-3 max-h-96 overflow-y-auto">
+                            <p class="text-gray-500 text-center py-4">학생 목록을 불러오는 중...</p>
                         </div>
-                    </div>
-                    
-                    <!-- 아이템 목록 -->
-                    <div id="admin-items-list" class="space-y-3 max-h-96 overflow-y-auto">
-                        <p class="text-gray-500 text-center py-4">아이템 목록을 불러오는 중...</p>
                     </div>
                 </div>
 
-
-
-
-
-
-
-                <!-- 반별 관리 및 데이터 초기화 패널 -->
-                <div class="bg-white rounded-lg shadow-lg p-6 xl:col-span-full">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">
-                            🏫 반별 관리 & 🗑️ 데이터 초기화
-                        </h2>
-                        <div class="text-sm text-red-600 font-medium">
-                            ⚠️ 초기화 작업은 되돌릴 수 없습니다
+                <!-- 아이템 관리 탭 -->
+                <div id="items-tab" class="admin-tab-panel hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                📦 아이템 관리
+                            </h2>
+                            <button onclick="refreshItemsList()" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm">
+                                🔄 새로고침
+                            </button>
+                        </div>
+                        
+                        <!-- 아이템 통계 -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-blue-50 p-3 rounded text-center">
+                                <div class="text-2xl font-bold text-blue-600" id="total-items-count">-</div>
+                                <div class="text-sm text-gray-600">총 아이템</div>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded text-center">
+                                <div class="text-2xl font-bold text-green-600" id="available-items-count">-</div>
+                                <div class="text-sm text-gray-600">판매중</div>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded text-center">
+                                <div class="text-2xl font-bold text-red-600" id="sold-items-count">-</div>
+                                <div class="text-sm text-gray-600">판매완료</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 아이템 목록 -->
+                        <div id="admin-items-list" class="space-y-3 max-h-96 overflow-y-auto">
+                            <p class="text-gray-500 text-center py-4">아이템 목록을 불러오는 중...</p>
                         </div>
                     </div>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                </div>
+
+                <!-- 반별 관리 탭 -->
+                <div id="class-tab" class="admin-tab-panel hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                🏫 반별 관리
+                            </h2>
+                            <button onclick="refreshClassOverview()" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm">
+                                🔄 새로고침
+                            </button>
+                        </div>
+                        
                         <!-- 반별 현황 -->
                         <div>
                             <h3 class="font-bold text-lg mb-4">📊 반별 현황</h3>
                             <div id="class-overview" class="space-y-3">
                                 <p class="text-gray-500 text-center py-4">반별 데이터를 불러오는 중...</p>
                             </div>
-                            
-                            <div class="mt-6 space-y-3">
-                                <h4 class="font-medium text-gray-700">반별 초기화</h4>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <button onclick="showClassResetModal()" 
-                                            class="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded text-sm">
-                                        🏫 반별 데이터 초기화
-                                    </button>
-                                    <button onclick="refreshClassOverview()" 
-                                            class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded text-sm">
-                                        🔄 반별 현황 새로고침
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 전체 데이터 초기화 -->
-                        <div>
-                            <h3 class="font-bold text-lg mb-4">🗑️ 전체 데이터 초기화</h3>
-                            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                                <div class="flex items-center mb-2">
-                                    <span class="text-red-600 font-bold">🚨 위험한 작업</span>
-                                </div>
-                                <p class="text-sm text-red-700">
-                                    아래 작업들은 관리자 비밀번호 재확인이 필요하며, 
-                                    실행 후에는 되돌릴 수 없습니다.
-                                </p>
-                            </div>
-                            
-                            <div class="space-y-3">
-                                <button onclick="resetItems()" 
-                                        class="w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded font-medium">
-                                    📦 모든 아이템 삭제
-                                </button>
-                                <button onclick="resetTransactions()" 
-                                        class="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded font-medium">
-                                    💰 모든 거래 내역 삭제
-                                </button>
-                                <button onclick="resetAllPointsWithConfirm()" 
-                                        class="w-full bg-red-700 hover:bg-red-800 text-white py-3 px-4 rounded font-medium">
-                                    🔄 모든 포인트 초기화
-                                </button>
-                                <div class="border-t pt-3">
-                                    <button onclick="resetAllData()" 
-                                            class="w-full bg-red-900 hover:bg-red-950 text-white py-4 px-4 rounded font-bold text-lg">
-                                        🔥 전체 데이터 완전 삭제
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- 초기화 통계 -->
-                            <div class="mt-6 bg-gray-50 rounded-lg p-4">
-                                <h4 class="font-medium text-gray-700 mb-3">현재 데이터 현황</h4>
-                                <div class="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <div class="text-gray-600">총 학생 수</div>
-                                        <div class="font-bold text-blue-600" id="total-students-count">-</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-gray-600">총 아이템 수</div>
-                                        <div class="font-bold text-green-600" id="total-items-count">-</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-gray-600">총 거래 건수</div>
-                                        <div class="font-bold text-purple-600" id="total-transactions-count">-</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-gray-600">총 포인트 이력</div>
-                                        <div class="font-bold text-orange-600" id="total-point-history-count">-</div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -582,54 +506,7 @@
         </div>
     </div>
 
-    <!-- 반별 초기화 모달 -->
-    <div id="class-reset-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-lg font-bold mb-4">🏫 반별 데이터 초기화</h3>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">초기화할 반 선택</label>
-                    <select id="target-class-select" class="w-full px-3 py-2 border rounded">
-                        <option value="4-1">4학년 1반</option>
-                        <option value="4-2">4학년 2반</option>
-                        <option value="4-3">4학년 3반</option>
-                        <option value="4-4">4학년 4반</option>
-                        <option value="4-5">4학년 5반</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">초기화할 데이터</label>
-                    <div class="space-y-2">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="reset-class-items" class="mr-2" checked>
-                            해당 반 아이템 삭제
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="reset-class-transactions" class="mr-2" checked>
-                            해당 반 거래 내역 삭제
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="reset-class-points" class="mr-2">
-                            해당 반 학생 포인트 초기화
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="flex gap-3 pt-4">
-                    <button onclick="executeClassReset()" 
-                            class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded">
-                        🗑️ 초기화 실행
-                    </button>
-                    <button onclick="closeClassResetModal()" 
-                            class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded">
-                        취소
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- 포인트 일괄 지급 모달 -->
     <div id="bulk-point-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -850,11 +727,11 @@
 <!-- 프로젝트 스크립트 - 순서 중요! -->
 <script src="js/supabase-config.js"></script>
 <script src="js/schema.js"></script>
-<script src="js/admin-functions.js"></script>
+<script src="js/admin-functions.js?v=20250911"></script>
 <script src="js/system-admin.js"></script>
 <script src="js/class-system.js"></script>
 <script src="js/purchase-system.js"></script>
-<script src="js/main.js"></script>
+<script src="js/main.js?v=20250911"></script>
 
 <!-- 로컬 스토리지 모드 (백업용) -->
 <script src="js/local-storage-mode.js"></script>
