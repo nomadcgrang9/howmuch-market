@@ -87,11 +87,44 @@ async function initializeApp() {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             try {
-                currentUser = JSON.parse(savedUser);
+                const localUser = JSON.parse(savedUser);
+                console.log('💾 localStorage에서 사용자 복구:', localUser.name, localUser.student_number);
+                
+                // Supabase 연결된 경우 최신 데이터로 동기화
+                if (window.supabaseClient && localUser.id) {
+                    console.log('🔄 사용자 데이터 동기화 중...');
+                    try {
+                        const { data: freshUser, error } = await window.supabaseClient
+                            .from('users')
+                            .select('*')
+                            .eq('id', localUser.id)
+                            .single();
+                            
+                        if (error) {
+                            console.error('❌ 사용자 동기화 오류:', error);
+                            currentUser = localUser; // 로컬 데이터 사용
+                        } else {
+                            console.log('✅ 최신 데이터 동기화 완료:', {
+                                local_points: localUser.purchase_points,
+                                db_points: freshUser.purchase_points,
+                                synced: freshUser.purchase_points
+                            });
+                            currentUser = freshUser;
+                            localStorage.setItem('currentUser', JSON.stringify(freshUser)); // localStorage도 업데이트
+                        }
+                    } catch (syncError) {
+                        console.error('❌ 동기화 실패:', syncError);
+                        currentUser = localUser;
+                    }
+                } else {
+                    currentUser = localUser;
+                }
+                
                 showMainApp();
                 updateUserInfo();
             } catch (e) {
-                 localStorage.removeItem('currentUser');
+                console.error('❌ localStorage 파싱 오류:', e);
+                localStorage.removeItem('currentUser');
             }
         }
     } catch (error) {
@@ -113,8 +146,36 @@ async function login() {
         let user = users[0];
 
         if (user) {
+            console.log('👤 기존 사용자 발견:', {
+                name: user.name,
+                student_number: user.student_number,
+                purchase_points: user.purchase_points,
+                sales_earnings: user.sales_earnings,
+                last_updated: user.updated_at
+            });
+            
+            // 이름이 다르면 업데이트
             if (user.name !== studentName) {
-                 user = await window.updateRecord('users', user.id, { name: studentName });
+                console.log('📝 사용자 이름 업데이트:', user.name, '→', studentName);
+                user = await window.updateRecord('users', user.id, { name: studentName });
+            }
+            
+            // 최신 데이터로 다시 조회 (혹시 다른 곳에서 변경되었을 수 있음)
+            console.log('🔄 최신 사용자 데이터 재조회 중...');
+            const { data: freshUser, error: refreshError } = await window.supabaseClient
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+                
+            if (refreshError) {
+                console.error('❌ 사용자 데이터 재조회 오류:', refreshError);
+            } else {
+                user = freshUser;
+                console.log('✅ 최신 데이터 적용:', {
+                    purchase_points: user.purchase_points,
+                    sales_earnings: user.sales_earnings
+                });
             }
         } else {
             user = await window.createRecord('users', {
@@ -128,11 +189,25 @@ async function login() {
             });
         }
         
+        // 최종 사용자 데이터 검증 및 저장
+        console.log('💾 로그인 성공 - 최종 사용자 데이터:', {
+            id: user.id,
+            name: user.name,
+            student_number: user.student_number,
+            purchase_points: user.purchase_points,
+            sales_earnings: user.sales_earnings,
+            is_new: !users[0] // 새 사용자인지 여부
+        });
+        
         currentUser = user;
         localStorage.setItem('currentUser', JSON.stringify(user));
         showMainApp();
         updateUserInfo();
-        showMessage('🎉 마켓에 오신 것을 환영합니다!', 'success');
+        
+        const welcomeMsg = user.purchase_points === 0 ? 
+            '🎉 다시 오신 것을 환영합니다! (구매 포인트 소진됨)' : 
+            '🎉 마켓에 오신 것을 환영합니다!';
+        showMessage(welcomeMsg, 'success');
 
     } catch (error) {
         console.error('❌ Login error:', error);
@@ -324,8 +399,19 @@ function showMainApp() {
 
 function updateUserInfo() {
     if (!currentUser) return;
-    const purchasePoints = currentUser.purchase_points || 10000;
-    const salesEarnings = currentUser.sales_earnings || 0;
+    
+    // 포인트 값이 정확히 0일 수도 있으므로 || 대신 ?? 사용
+    const purchasePoints = currentUser.purchase_points ?? 10000;
+    const salesEarnings = currentUser.sales_earnings ?? 0;
+    
+    // 디버깅용 로그
+    console.log('💰 사용자 포인트 정보:', {
+        name: currentUser.name,
+        raw_purchase_points: currentUser.purchase_points,
+        display_purchase_points: purchasePoints,
+        raw_sales_earnings: currentUser.sales_earnings,
+        display_sales_earnings: salesEarnings
+    });
     const userLevel = getUserLevel(salesEarnings);
     const levelText = getLevelText(userLevel);
     document.getElementById('user-name').innerHTML = `${currentUser.name} <span class="level-badge ${userLevel}">${levelText}</span>`;
@@ -1184,8 +1270,28 @@ async function confirmPurchase(itemId) {
             console.log('✅ 거래 내역 기록 완료');
         }
         
-        // 로컬 사용자 정보 업데이트 (구매자)
-        currentUser.purchase_points = buyerNewPoints;
+        // 구매자 데이터베이스에서도 업데이트 확인
+        console.log('🔍 구매자 포인트 데이터베이스 재확인...');
+        const { data: updatedBuyer, error: buyerCheckError } = await window.supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+            
+        if (buyerCheckError) {
+            console.error('❌ 구매자 포인트 재확인 오류:', buyerCheckError);
+            // 로컬만 업데이트
+            currentUser.purchase_points = buyerNewPoints;
+        } else {
+            // 데이터베이스 값으로 정확히 업데이트
+            console.log('✅ 구매자 최신 데이터 적용:', {
+                old_points: currentUser.purchase_points,
+                new_points: updatedBuyer.purchase_points,
+                calculated_points: buyerNewPoints
+            });
+            currentUser = updatedBuyer; // 전체 사용자 정보 업데이트
+        }
+        
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         updateUserInfo();
         
@@ -1426,9 +1532,14 @@ async function deleteItemAsTeacher(itemId) {
         
         showMessage('아이템이 성공적으로 삭제되었습니다', 'success');
         
-        // 관리자 목록 새로고침 (함수가 있을 경우)
-        if (typeof loadAllItems === 'function') {
-            await loadAllItems();
+        // 관리자 목록 새로고침
+        console.log('🔄 아이템 목록 새로고침 시도...');
+        if (typeof refreshItemsList === 'function') {
+            await refreshItemsList();
+        } else if (typeof loadAdminItemsList === 'function') {
+            await loadAdminItemsList();
+        } else {
+            console.warn('⚠️ 아이템 목록 새로고침 함수를 찾을 수 없음');
         }
         
     } catch (error) {
@@ -1439,20 +1550,32 @@ async function deleteItemAsTeacher(itemId) {
 
 // Admin Dashboard
 async function showTeacherModal() {
+    // 학생용 앱과 네비게이션 숨기기
     document.getElementById('main-app').style.display = 'none';
+    
+    // 학생용 포인트 정보 숨기기 (교사는 볼 필요 없음)
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+        userInfo.style.display = 'none';
+    }
+    
+    // 관리자 대시보드 표시
     const adminDashboard = document.getElementById('admin-dashboard');
     adminDashboard.classList.remove('hidden');
     
-    // 관리자 대시보드 로드 (함수가 있을 경우)
-    if (typeof loadAdminDashboard === 'function') {
-        await loadAdminDashboard();
+    console.log('👩‍🏫 교사 관리자 모드 활성화');
+    
+    // 관리자 대시보드 데이터 로드
+    if (typeof loadAdminStudentsList === 'function') {
+        await loadAdminStudentsList();
+    }
+    if (typeof loadAdminItemsList === 'function') {
+        await loadAdminItemsList();
     }
 }
 
-function exitAdminMode() {
-    document.getElementById('admin-dashboard').classList.add('hidden');
-    showMainApp();
-}
+// exitAdminMode 함수 제거 (더 이상 필요하지 않음)
+// 교사는 로그아웃으로만 관리자 모드를 나갈 수 있음
 
 // Utility Functions
 function showMessage(message, type = 'info') {
@@ -1574,5 +1697,6 @@ window.closeTeacherLoginModal = closeTeacherLoginModal;
 window.confirmTeacherLogin = confirmTeacherLogin;
 window.legacyTeacherLogin = legacyTeacherLogin;
 window.loadTransactionHistory = loadTransactionHistory;
+window.deleteItemAsTeacher = deleteItemAsTeacher;
 window.logout = logout;
 window.showTab = showTab;
