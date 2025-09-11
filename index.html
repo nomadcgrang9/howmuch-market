@@ -405,10 +405,7 @@
                                 class="admin-tab-btn border-b-2 border-transparent py-2 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
                             📦 아이템 관리
                         </button>
-                        <button onclick="showAdminTab('class')" 
-                                class="admin-tab-btn border-b-2 border-transparent py-2 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
-                            🏫 반별 관리
-                        </button>
+
                     </nav>
                 </div>
             </div>
@@ -480,28 +477,7 @@
                     </div>
                 </div>
 
-                <!-- 반별 관리 탭 -->
-                <div id="class-tab" class="admin-tab-panel hidden">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-xl font-bold text-gray-800">
-                                🏫 반별 관리
-                            </h2>
-                            <button onclick="refreshClassOverview()" 
-                                    class="text-blue-600 hover:text-blue-800 text-sm">
-                                🔄 새로고침
-                            </button>
-                        </div>
-                        
-                        <!-- 반별 현황 -->
-                        <div>
-                            <h3 class="font-bold text-lg mb-4">📊 반별 현황</h3>
-                            <div id="class-overview" class="space-y-3">
-                                <p class="text-gray-500 text-center py-4">반별 데이터를 불러오는 중...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </div>
     </div>
@@ -724,14 +700,30 @@
 })();
 </script>
 
-<!-- 프로젝트 스크립트 - 순서 중요! -->
-<script src="js/supabase-config.js"></script>
-<script src="js/schema.js"></script>
-<script src="js/admin-functions.js?v=20250911"></script>
-<script src="js/system-admin.js"></script>
-<script src="js/class-system.js"></script>
-<script src="js/purchase-system.js"></script>
-<script src="js/main.js?v=20250911"></script>
+<!-- 프로젝트 스크립트 - 순서 중요! (캐시 방지 강화) -->
+<script src="js/supabase-config.js?v=20250911-fix3"></script>
+<script src="js/schema.js?v=20250911-fix3"></script>
+<script src="js/admin-functions.js?v=20250911-fix3"></script>
+<script src="js/system-admin.js?v=20250911-fix3"></script>
+<script src="js/class-system.js?v=20250911-fix3"></script>
+<script src="js/purchase-system.js?v=20250911-fix3"></script>
+<script src="js/main.js?v=20250911-fix3"></script>
+
+<!-- 브라우저 캐시 방지 추가 로직 -->
+<script>
+// 캐시 문제 해결을 위한 강제 새로고침 로직
+if (window.performance && window.performance.getEntriesByType) {
+    const navEntries = window.performance.getEntriesByType('navigation');
+    if (navEntries.length > 0 && navEntries[0].type === 'back_forward') {
+        console.log('🔄 뒤로가기/앞으로가기 감지 - 페이지 새로고침');
+        window.location.reload(true);
+    }
+}
+
+// 개발자 도구에서 캐시 확인
+console.log('🔍 현재 로드된 스크립트 버전: v=20250911-fix3');
+console.log('⏰ 페이지 로딩 시간:', new Date().toISOString());
+</script>
 
 <!-- 로컬 스토리지 모드 (백업용) -->
 <script src="js/local-storage-mode.js"></script>
