@@ -1591,7 +1591,21 @@ async function deleteItemAsTeacher(itemId) {
     }
     
     try {
-        // Supabase를 사용하여 아이템 삭제
+        console.log('🔍 관련 트랜잭션 확인 중...');
+        
+        // 1. 먼저 해당 아이템과 관련된 모든 트랜잭션 삭제
+        const { error: transactionError } = await window.supabaseClient
+            .from('transactions')
+            .delete()
+            .eq('item_id', itemId);
+        
+        if (transactionError) {
+            console.warn('⚠️ 트랜잭션 삭제 중 오류 (계속 진행):', transactionError);
+        } else {
+            console.log('✅ 관련 트랜잭션 삭제 완료');
+        }
+        
+        // 2. 이제 아이템 삭제
         const { error } = await window.supabaseClient
             .from('items')
             .delete()
