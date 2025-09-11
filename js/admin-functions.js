@@ -386,9 +386,11 @@ async function executeBulkPointGive() {
         
         // 결과 메시지
         if (errorCount === 0) {
-            showMessage(`${successCount}명의 학생에게 ${amount.toLocaleString()}P를 성공적으로 지급했습니다.`, 'success');
+            alert(`✅ 포인트 지급 완료!\n\n${successCount}명의 학생에게 ${amount.toLocaleString()}P를 성공적으로 지급했습니다.`);
+            showMessage(`✅ ${successCount}명에게 ${amount.toLocaleString()}P 지급 완료`, 'success');
         } else {
-            showMessage(`${successCount}명 성공, ${errorCount}명 실패로 포인트 지급이 완료되었습니다.`, 'warning');
+            alert(`⚠️ 포인트 지급 결과\n\n성공: ${successCount}명\n실패: ${errorCount}명\n\n일부 학생에게 지급이 실패했습니다.`);
+            showMessage(`⚠️ ${successCount}명 성공, ${errorCount}명 실패`, 'warning');
         }
         
         // 모달 닫기 및 목록 새로고침
@@ -430,8 +432,15 @@ function showEditPointsModal(studentId, studentName) {
 // 현재 포인트 정보 로드
 async function loadCurrentPointsInfo(studentId) {
     try {
-        const student = await fetchRecord('users', studentId);
+        console.log('📊 학생 정보 로드 시도:', studentId);
+        
+        // fetchTableData로 해당 학생 정보 조회
+        const usersData = await fetchTableData('users');
+        const student = usersData.data.find(user => user.id === studentId);
+        
         if (student) {
+            console.log('✅ 학생 정보 로드 성공:', student.name);
+            
             // 현재 포인트 정보 표시
             const purchaseSpan = document.getElementById('current-purchase-points');
             const salesSpan = document.getElementById('current-sales-earnings');
@@ -444,16 +453,21 @@ async function loadCurrentPointsInfo(studentId) {
             }
             
             // 입력 필드 초기화
-            document.getElementById('point-change-amount').value = '';
-            document.getElementById('point-change-reason').value = '';
+            const adjustmentInput = document.getElementById('point-adjustment');
+            const reasonInput = document.getElementById('point-change-reason');
+            const newPointsInput = document.getElementById('new-purchase-points');
             
-            const actionSelect = document.getElementById('point-change-action');
-            if (actionSelect) {
-                actionSelect.value = 'add';
-            }
+            if (adjustmentInput) adjustmentInput.value = '';
+            if (reasonInput) reasonInput.value = '';
+            if (newPointsInput) newPointsInput.value = '';
+            
+        } else {
+            console.warn('⚠️ 학생 정보를 찾을 수 없습니다:', studentId);
+            showMessage('학생 정보를 찾을 수 없습니다.', 'error');
         }
     } catch (error) {
         console.error('❌ 학생 정보 로드 오류:', error);
+        showMessage('학생 정보 로드에 실패했습니다: ' + error.message, 'error');
     }
 }
 
@@ -510,7 +524,8 @@ async function adjustPoints(action) {
         console.log(`${action === 'add' ? '➕' : '➖'} 포인트 조정: ${finalAdjustment}P`);
         
         // 현재 학생 정보 조회
-        const student = await fetchRecord('users', studentId);
+        const usersData = await fetchTableData('users');
+        const student = usersData.data.find(user => user.id === studentId);
         if (!student) {
             throw new Error('학생 정보를 찾을 수 없습니다.');
         }
@@ -533,7 +548,8 @@ async function adjustPoints(action) {
             purchase_points: newPoints
         });
         
-        showMessage(`${student.name}에게 ${Math.abs(finalAdjustment).toLocaleString()}P를 ${actionText}했습니다.`, 'success');
+        alert(`✅ ${actionText} 완료!\n\n${student.name}에게 ${Math.abs(finalAdjustment).toLocaleString()}P를 ${actionText}했습니다.\n\n현재 잔액: ${newPoints.toLocaleString()}P`);
+        showMessage(`✅ ${student.name}에게 ${Math.abs(finalAdjustment).toLocaleString()}P ${actionText} 완료`, 'success');
         
         // 입력값 초기화 및 현재 포인트 정보 다시 로드
         adjustmentInput.value = '';
@@ -580,7 +596,8 @@ async function savePointChanges() {
         console.log(`💾 포인트 직접 설정: ${newPoints}P`);
         
         // 현재 학생 정보 조회
-        const student = await fetchRecord('users', studentId);
+        const usersData = await fetchTableData('users');
+        const student = usersData.data.find(user => user.id === studentId);
         if (!student) {
             throw new Error('학생 정보를 찾을 수 없습니다.');
         }
@@ -596,7 +613,8 @@ async function savePointChanges() {
             purchase_points: newPoints
         });
         
-        showMessage(`${student.name}의 포인트를 ${newPoints.toLocaleString()}P로 설정했습니다.`, 'success');
+        alert(`✅ 포인트 설정 완료!\n\n${student.name}의 구매 포인트를 ${newPoints.toLocaleString()}P로 설정했습니다.`);
+        showMessage(`✅ ${student.name} 포인트 설정 완료: ${newPoints.toLocaleString()}P`, 'success');
         
         // 모달 닫기
         closeEditPointsModal();
@@ -619,59 +637,59 @@ window.executeBulkPointGive = executeBulkPointGive;
 window.showEditPointsModal = showEditPointsModal;
 window.showPointHistoryModal = showPointHistoryModal;
 window.loadCurrentPointsInfo = loadCurrentPointsInfo;
-// 순위별 포인트 지급
-async function giveRankPoints(rank, points) {
-    try {
-        console.log(`🏆 ${rank}등에게 ${points}P 지급 시작`);
+
+
+window.closeEditPointsModal = closeEditPointsModal;
+// 관리자 탭 전환 함수
+function showAdminTab(tabName) {
+    console.log(`🔀 관리자 탭 전환: ${tabName}`);
+    
+    // 모든 탭 버튼의 활성화 상태 제거
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-purple-500', 'text-purple-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // 모든 탭 패널 숨기기
+    document.querySelectorAll('.admin-tab-panel').forEach(panel => {
+        panel.classList.add('hidden');
+    });
+    
+    // 클릭된 탭 버튼 활성화
+    const clickedBtn = event?.currentTarget;
+    if (clickedBtn) {
+        clickedBtn.classList.remove('border-transparent', 'text-gray-500');
+        clickedBtn.classList.add('active', 'border-purple-500', 'text-purple-600');
+    }
+    
+    // 해당 탭 패널 표시
+    const targetPanel = document.getElementById(`${tabName}-tab`);
+    if (targetPanel) {
+        targetPanel.classList.remove('hidden');
         
-        if (!confirm(`현재 판매수익 ${rank}등 학생에게 ${points.toLocaleString()}P를 지급하시겠습니까?`)) {
-            return;
+        // 탭별 데이터 로드
+        switch(tabName) {
+            case 'students':
+                if (typeof loadAdminStudentsList === 'function') {
+                    loadAdminStudentsList();
+                }
+                break;
+            case 'items':
+                if (typeof loadAdminItemsList === 'function') {
+                    loadAdminItemsList();
+                }
+                break;
+            case 'class':
+                if (typeof refreshClassOverview === 'function') {
+                    refreshClassOverview();
+                }
+                break;
         }
-        
-        // 모든 학생 조회 (선생님 제외)
-        const usersData = await fetchTableData('users');
-        const students = usersData.data.filter(user => 
-            user.student_number !== '0000' && !user.is_teacher
-        );
-        
-        if (students.length === 0) {
-            showMessage('등록된 학생이 없습니다.', 'error');
-            return;
-        }
-        
-        // 판매 수익 기준으로 내림차순 정렬
-        students.sort((a, b) => (b.sales_earnings || 0) - (a.sales_earnings || 0));
-        
-        // 해당 순위 학생 확인
-        if (students.length < rank) {
-            showMessage(`${rank}등 학생이 없습니다. (전체 학생: ${students.length}명)`, 'error');
-            return;
-        }
-        
-        const targetStudent = students[rank - 1]; // 0-based index
-        const currentPoints = targetStudent.purchase_points || 0;
-        const newPoints = currentPoints + points;
-        
-        // 포인트 지급
-        await updateRecord('users', targetStudent.id, {
-            purchase_points: newPoints
-        });
-        
-        const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
-        showMessage(`${rankEmoji} ${rank}등 ${targetStudent.name}에게 ${points.toLocaleString()}P를 지급했습니다!\n(${currentPoints.toLocaleString()}P → ${newPoints.toLocaleString()}P)`, 'success');
-        
-        // 학생 목록 새로고침
-        if (typeof loadAdminStudentsList === 'function') {
-            await loadAdminStudentsList();
-        }
-        
-    } catch (error) {
-        console.error(`❌ ${rank}등 포인트 지급 오류:`, error);
-        showMessage(`포인트 지급 중 오류가 발생했습니다: ${error.message}`, 'error');
+    } else {
+        console.error(`❌ ${tabName}-tab 패널을 찾을 수 없습니다.`);
     }
 }
 
-window.closeEditPointsModal = closeEditPointsModal;
 window.adjustPoints = adjustPoints;
 window.savePointChanges = savePointChanges;
-window.giveRankPoints = giveRankPoints;
+window.showAdminTab = showAdminTab;
