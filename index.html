@@ -10,7 +10,7 @@
 </head>
 <body class="bg-gray-50">
     <!-- Navigation Header -->
-    <nav class="bg-blue-600 text-white shadow-lg">
+    <nav id="main-navigation" class="bg-blue-600 text-white shadow-lg">
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
@@ -391,92 +391,70 @@
             </div>
         </nav>
 
-        <!-- 관리자 메인 컨텐츠 -->
+        <!-- 관리자 메인 컨텐츠 - 2분할 화면 -->
         <div class="container mx-auto px-4 py-8">
-            <!-- 관리자 탭 네비게이션 -->
-            <div class="mb-8">
-                <div class="border-b border-gray-200">
-                    <nav class="-mb-px flex space-x-8">
-                        <button onclick="showAdminTab('students')" 
-                                class="admin-tab-btn active border-b-2 border-purple-500 py-2 px-1 text-purple-600 font-medium text-sm">
-                            👥 학생 관리
-                        </button>
-                        <button onclick="showAdminTab('items')" 
-                                class="admin-tab-btn border-b-2 border-transparent py-2 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
-                            📦 아이템 관리
-                        </button>
-
-                    </nav>
-                </div>
-            </div>
-
-            <!-- 탭 콘텐츠 -->
-            <div id="admin-tab-content">
+            <!-- 2분할 그리드 레이아웃 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
                 
-                <!-- 학생 관리 탭 -->
-                <div id="students-tab" class="admin-tab-panel">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-xl font-bold text-gray-800">
-                                👥 학생 관리 (포인트 시스템)
-                            </h2>
-                            <button onclick="refreshStudentsList()" 
-                                    class="text-blue-600 hover:text-blue-800 text-sm">
-                                🔄 새로고침
-                            </button>
-                        </div>
-                        
-                        <!-- 일괄 관리 버튼 -->
-                        <div class="mb-6">
-                            <button onclick="showBulkPointGiveModal()" 
-                                    class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm w-full">
-                                💰 전체 학생 포인트 지급
-                            </button>
-                        </div>
-                        
-                        <!-- 학생 목록 -->
-                        <div id="admin-students-list" class="space-y-3 max-h-96 overflow-y-auto">
-                            <p class="text-gray-500 text-center py-4">학생 목록을 불러오는 중...</p>
-                        </div>
+                <!-- 왼쪽: 학생 관리 -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            👥 학생 관리 (포인트 시스템)
+                        </h2>
+                        <button onclick="refreshStudentsList()" 
+                                class="text-blue-600 hover:text-blue-800 text-sm">
+                            🔄 새로고침
+                        </button>
+                    </div>
+                    
+                    <!-- 일괄 관리 버튼 -->
+                    <div class="mb-6">
+                        <button onclick="showBulkPointGiveModal()" 
+                                class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm w-full">
+                            💰 전체 학생 포인트 지급
+                        </button>
+                    </div>
+                    
+                    <!-- 학생 목록 -->
+                    <div id="admin-students-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 text-center py-4">학생 목록을 불러오는 중...</p>
                     </div>
                 </div>
 
-                <!-- 아이템 관리 탭 -->
-                <div id="items-tab" class="admin-tab-panel hidden">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-xl font-bold text-gray-800">
-                                📦 아이템 관리
-                            </h2>
-                            <button onclick="refreshItemsList()" 
-                                    class="text-blue-600 hover:text-blue-800 text-sm">
-                                🔄 새로고침
-                            </button>
+                <!-- 오른쪽: 아이템 관리 -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            📦 아이템 관리
+                        </h2>
+                        <button onclick="refreshItemsList()" 
+                                class="text-blue-600 hover:text-blue-800 text-sm">
+                            🔄 새로고침
+                        </button>
+                    </div>
+                    
+                    <!-- 아이템 통계 -->
+                    <div class="grid grid-cols-3 gap-2 mb-6">
+                        <div class="bg-blue-50 p-2 rounded text-center">
+                            <div class="text-lg font-bold text-blue-600" id="total-items-count">-</div>
+                            <div class="text-xs text-gray-600">총 아이템</div>
                         </div>
-                        
-                        <!-- 아이템 통계 -->
-                        <div class="grid grid-cols-3 gap-4 mb-6">
-                            <div class="bg-blue-50 p-3 rounded text-center">
-                                <div class="text-2xl font-bold text-blue-600" id="total-items-count">-</div>
-                                <div class="text-sm text-gray-600">총 아이템</div>
-                            </div>
-                            <div class="bg-green-50 p-3 rounded text-center">
-                                <div class="text-2xl font-bold text-green-600" id="available-items-count">-</div>
-                                <div class="text-sm text-gray-600">판매중</div>
-                            </div>
-                            <div class="bg-red-50 p-3 rounded text-center">
-                                <div class="text-2xl font-bold text-red-600" id="sold-items-count">-</div>
-                                <div class="text-sm text-gray-600">판매완료</div>
-                            </div>
+                        <div class="bg-green-50 p-2 rounded text-center">
+                            <div class="text-lg font-bold text-green-600" id="available-items-count">-</div>
+                            <div class="text-xs text-gray-600">판매중</div>
                         </div>
-                        
-                        <!-- 아이템 목록 -->
-                        <div id="admin-items-list" class="space-y-3 max-h-96 overflow-y-auto">
-                            <p class="text-gray-500 text-center py-4">아이템 목록을 불러오는 중...</p>
+                        <div class="bg-red-50 p-2 rounded text-center">
+                            <div class="text-lg font-bold text-red-600" id="sold-items-count">-</div>
+                            <div class="text-xs text-gray-600">판매완료</div>
                         </div>
                     </div>
+                    
+                    <!-- 아이템 목록 -->
+                    <div id="admin-items-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 text-center py-4">아이템 목록을 불러오는 중...</p>
+                    </div>
                 </div>
-
 
             </div>
         </div>
@@ -535,21 +513,12 @@
                     </div>
                 </div>
                 
-                <!-- 포인트 수정 옵션 -->
+                <!-- 포인트 조정 -->
                 <div class="space-y-3">
-                    <h4 class="font-medium">포인트 조정 방식</h4>
-                    
-                    <!-- 직접 설정 -->
-                    <div class="border rounded p-3">
-                        <label class="block text-sm font-medium mb-2">구매 포인트 직접 설정</label>
-                        <input type="number" id="new-purchase-points" 
-                               class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               placeholder="새로운 구매 포인트" min="0" max="999999">
-                    </div>
+                    <h4 class="font-medium">포인트 지급/차감</h4>
                     
                     <!-- 포인트 지급/차감 -->
                     <div class="border rounded p-3">
-                        <label class="block text-sm font-medium mb-2">포인트 지급/차감</label>
                         <div class="flex gap-2">
                             <input type="number" id="point-adjustment" 
                                    class="flex-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -575,9 +544,9 @@
                 </div>
                 
                 <div class="flex gap-3 pt-4">
-                    <button onclick="savePointChanges()" 
-                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded">
-                        💾 저장
+                    <button onclick="closeEditPointsModal()" 
+                            class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded">
+                        ✅ 확인
                     </button>
                     <button onclick="closeEditPointsModal()" 
                             class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded">
@@ -701,13 +670,13 @@
 </script>
 
 <!-- 프로젝트 스크립트 - 순서 중요! (캐시 방지 강화) -->
-<script src="js/supabase-config.js?v=20250911-fix3"></script>
-<script src="js/schema.js?v=20250911-fix3"></script>
-<script src="js/admin-functions.js?v=20250911-fix3"></script>
-<script src="js/system-admin.js?v=20250911-fix3"></script>
-<script src="js/class-system.js?v=20250911-fix3"></script>
-<script src="js/purchase-system.js?v=20250911-fix3"></script>
-<script src="js/main.js?v=20250911-fix3"></script>
+<script src="js/supabase-config.js?v=20250912-syntax-fix"></script>
+<script src="js/schema.js?v=20250912-syntax-fix"></script>
+<script src="js/admin-functions.js?v=20250912-syntax-fix"></script>
+<script src="js/system-admin.js?v=20250912-syntax-fix"></script>
+<script src="js/class-system.js?v=20250912-syntax-fix"></script>
+<script src="js/purchase-system.js?v=20250912-syntax-fix"></script>
+<script src="js/main.js?v=20250912-syntax-fix"></script>
 
 <!-- 브라우저 캐시 방지 추가 로직 -->
 <script>
@@ -721,7 +690,7 @@ if (window.performance && window.performance.getEntriesByType) {
 }
 
 // 개발자 도구에서 캐시 확인
-console.log('🔍 현재 로드된 스크립트 버전: v=20250911-fix3');
+console.log('🔍 현재 로드된 스크립트 버전: v=20250912-syntax-fix');
 console.log('⏰ 페이지 로딩 시간:', new Date().toISOString());
 </script>
 
