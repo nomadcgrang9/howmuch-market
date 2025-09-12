@@ -17,8 +17,8 @@
                     <h1 class="text-2xl font-bold cute-font">
                         🏪 창건샘의 How Much 마켓
                     </h1>
-                    <div id="current-class-info">
-                        <!-- 현재 반 정보가 여기에 표시됩니다 -->
+                    <div id="current-class-info" style="display: none;">
+                        <!-- 반 정보 표시 비활성화 -->
                     </div>
                 </div>
                 <div id="user-info" class="flex items-center space-x-4" style="display: none;">
@@ -117,7 +117,7 @@
                     <h3 class="text-xl font-bold mb-4 text-gray-800">
                         🏦 판매 중인 아이템
                     </h3>
-                    <div id="items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div id="items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <!-- Items will be loaded here -->
                     </div>
                 </div>
@@ -670,13 +670,13 @@
 </script>
 
 <!-- 프로젝트 스크립트 - 순서 중요! (캐시 방지 강화) -->
-<script src="js/supabase-config.js?v=20250912-syntax-fix"></script>
-<script src="js/schema.js?v=20250912-syntax-fix"></script>
-<script src="js/admin-functions.js?v=20250912-syntax-fix"></script>
-<script src="js/system-admin.js?v=20250912-syntax-fix"></script>
-<script src="js/class-system.js?v=20250912-syntax-fix"></script>
-<script src="js/purchase-system.js?v=20250912-syntax-fix"></script>
-<script src="js/main.js?v=20250912-syntax-fix"></script>
+<script src="js/supabase-config.js?v=20250912-110000"></script>
+<script src="js/schema.js?v=20250912-110000"></script>
+<script src="js/admin-functions.js?v=20250912-110000"></script>
+<script src="js/system-admin.js?v=20250912-110000"></script>
+<script src="js/class-system.js?v=20250912-110000"></script>
+<script src="js/purchase-system.js?v=20250912-110000"></script>
+<script src="js/main.js?v=20250912-110000"></script>
 
 <!-- 브라우저 캐시 방지 추가 로직 -->
 <script>
@@ -690,7 +690,7 @@ if (window.performance && window.performance.getEntriesByType) {
 }
 
 // 개발자 도구에서 캐시 확인
-console.log('🔍 현재 로드된 스크립트 버전: v=20250912-syntax-fix');
+console.log('🔍 현재 로드된 스크립트 버전: v=20250912-ui-fix-055530');
 console.log('⏰ 페이지 로딩 시간:', new Date().toISOString());
 </script>
 
