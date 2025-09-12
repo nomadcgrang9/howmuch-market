@@ -85,10 +85,10 @@ body {
     width: 60%;
 }
 
-/* 포켓몬 카드 스타일의 아이템 카드 */
+/* 포켓몬 카드 스타일의 아이템 카드 - 레이아웃 개선 */
 .item-card {
     background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
-    @apply overflow-hidden relative;
+    @apply overflow-hidden relative; /* overflow를 hidden으로 복원 */
     border-radius: 20px;
     border: 3px solid var(--primary-light);
     box-shadow: 
@@ -97,15 +97,20 @@ body {
     transform: translateY(0);
     position: relative;
     transition: all 0.2s ease-out;
+    margin: 12px; /* 카드 주변 여백 증가 */
+    min-height: 380px; /* 최소 높이 증가 */
+    padding: 16px; /* 내부 여백 추가 */
+    max-width: calc(100% - 24px); /* 카드가 컨테이너를 넘지 않도록 */
 }
 
 .item-card:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-2px) scale(1.02); /* 살짝 축소된 hover 효과 */
     box-shadow: 
-        0 12px 28px rgba(110, 181, 255, 0.2),
-        0 0 15px rgba(129, 199, 132, 0.15),
+        0 10px 25px rgba(110, 181, 255, 0.2),
+        0 0 12px rgba(129, 199, 132, 0.15),
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
     border-color: var(--accent-color);
+    z-index: 5; /* z-index 낮춤 */
 }
 
 /* 홀로그램 효과 */
@@ -493,6 +498,75 @@ body {
     transition: all 0.2s ease;
 }
 
+/* 아이템 카드 내부 버튼 스타일 개선 */
+.item-card .buy-btn, .item-card .admin-btn {
+    @apply w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-200;
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.item-card .buy-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.item-card .buy-btn.insufficient-funds {
+    @apply bg-gray-400 cursor-not-allowed;
+}
+
+.item-card .buy-btn.insufficient-funds:hover {
+    @apply bg-gray-400;
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 판매완료/삭제 버튼 스타일 */
+.item-card .sold-status {
+    @apply px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-center;
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.item-card .delete-btn {
+    @apply w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all duration-200;
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+}
+
+.item-card .delete-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(220, 38, 38, 0.3);
+}
+
+/* 아이템 정보 영역 스타일 */
+.item-card .item-info {
+    padding-top: 12px;
+    border-top: 1px solid rgba(229, 231, 235, 0.5);
+    margin-top: 12px;
+}
+
+/* 가격 태그 스타일 개선 */
+.item-card .price-tag {
+    @apply inline-flex items-center px-3 py-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 rounded-full text-sm font-bold;
+    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+}
+
+/* 카테고리 뱃지 스타일 개선 */
+.item-card .category-badge {
+    @apply px-2 py-1 text-xs rounded-full font-medium;
+    background: linear-gradient(135deg, #e0f2fe, #b3e5fc);
+    color: #0277bd;
+    border: 1px solid #81d4fa;
+}
+
 /* Drawing Tools */
 .drawing-tools {
     background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
@@ -556,6 +630,16 @@ body {
     @apply p-4 mb-4 text-red-700 bg-red-100 border border-red-200 rounded-lg;
 }
 
+/* 그리드 컨테이너 오버플로우 방지 */
+#items-grid, #my-selling-items, #my-bought-items {
+    position: relative;
+    overflow: hidden; /* 카드가 넘치지 않도록 hidden으로 복원 */
+    padding: 16px; /* 여백 증가 */
+    gap: 16px; /* 카드 간격 추가 */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* 반응형 그리드 */
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .container {
@@ -571,6 +655,15 @@ body {
     
     .item-card {
         margin-bottom: 1rem;
+    }
+    
+    /* 모바일에서 hover 효과 제거 */
+    .item-card:hover {
+        transform: none;
+        box-shadow: 
+            0 8px 25px rgba(110, 181, 255, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border-color: var(--primary-light);
     }
 }
 
