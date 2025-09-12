@@ -383,6 +383,12 @@ function logout() {
         adminDashboard.style.display = 'none';
     }
     
+    // 메인 네비게이션 복원
+    const mainNav = document.getElementById('main-navigation');
+    if (mainNav) {
+        mainNav.style.display = 'block';
+    }
+    
     // 메인 앱 화면 복원
     const app = document.getElementById('app');
     if (app) {
@@ -476,6 +482,12 @@ function showAdminDashboard() {
     console.log('🎯 관리자 대시보드 표시 중...');
     
     try {
+        // 메인 네비게이션 숨기기
+        const mainNav = document.getElementById('main-navigation');
+        if (mainNav) {
+            mainNav.style.display = 'none';
+        }
+        
         // 기본 앱 화면 숨기기
         const app = document.getElementById('app');
         if (app) {
@@ -492,14 +504,24 @@ function showAdminDashboard() {
             console.log('📊 관리자 데이터 로딩 시작...');
             
             setTimeout(() => {
-                if (typeof loadAdminItemsList === 'function') {
-                    console.log('📦 아이템 목록 로딩...');
-                    loadAdminItemsList();
+                console.log('🔍 함수 존재 여부 확인:');
+                console.log('- loadAdminItemsList:', typeof window.loadAdminItemsList);
+                console.log('- loadAdminStudentsList:', typeof window.loadAdminStudentsList);
+                
+                if (typeof window.loadAdminItemsList === 'function') {
+                    console.log('📦 아이템 목록 로딩 시작...');
+                    window.loadAdminItemsList();
+                } else {
+                    console.error('❌ loadAdminItemsList 함수를 찾을 수 없습니다');
                 }
-                if (typeof loadAdminStudentsList === 'function') {
-                    console.log('👥 학생 목록 로딩...');
-                    loadAdminStudentsList();
+                
+                if (typeof window.loadAdminStudentsList === 'function') {
+                    console.log('👥 학생 목록 로딩 시작...');
+                    window.loadAdminStudentsList();
+                } else {
+                    console.error('❌ loadAdminStudentsList 함수를 찾을 수 없습니다');
                 }
+                
                 if (typeof loadRecentTransactions === 'function') {
                     console.log('📊 거래 내역 로딩...');
                     loadRecentTransactions();
@@ -508,7 +530,7 @@ function showAdminDashboard() {
                     console.log('📈 시장 통계 로딩...');
                     loadMarketStatistics();
                 }
-            }, 100); // 약간의 지연으로 DOM 렌더링 완료 후 실행
+            }, 500); // 지연 시간을 늘려서 스크립트 로딩 완료 대기
             
         } else {
             console.error('❌ admin-dashboard 엘리먼트를 찾을 수 없습니다.');
