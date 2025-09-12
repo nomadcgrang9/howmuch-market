@@ -1,0 +1,90 @@
+            <!-- 탭 콘텐츠 -->
+            <div id="admin-tab-content">
+                
+                <!-- 학생 관리 탭 -->
+                <div id="students-tab" class="admin-tab-panel">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                👥 학생 관리 (포인트 시스템)
+                            </h2>
+                            <button onclick="refreshStudentsList()" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm">
+                                🔄 새로고침
+                            </button>
+                        </div>
+                        
+                        <!-- 일괄 관리 버튼 -->
+                        <div class="mb-6">
+                            <button onclick="showBulkPointGiveModal()" 
+                                    class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm w-full">
+                                💰 전체 학생 포인트 지급
+                            </button>
+                        </div>
+                        
+                        <!-- 학생 목록 -->
+                        <div id="admin-students-list" class="space-y-3 max-h-96 overflow-y-auto">
+                            <p class="text-gray-500 text-center py-4">학생 목록을 불러오는 중...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 아이템 관리 탭 -->
+                <div id="items-tab" class="admin-tab-panel hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                📦 아이템 관리
+                            </h2>
+                            <button onclick="refreshItemsList()" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm">
+                                🔄 새로고침
+                            </button>
+                        </div>
+                        
+                        <!-- 아이템 통계 -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-blue-50 p-3 rounded text-center">
+                                <div class="text-2xl font-bold text-blue-600" id="total-items-count">-</div>
+                                <div class="text-sm text-gray-600">총 아이템</div>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded text-center">
+                                <div class="text-2xl font-bold text-green-600" id="available-items-count">-</div>
+                                <div class="text-sm text-gray-600">판매중</div>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded text-center">
+                                <div class="text-2xl font-bold text-red-600" id="sold-items-count">-</div>
+                                <div class="text-sm text-gray-600">판매완료</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 아이템 목록 -->
+                        <div id="admin-items-list" class="space-y-3 max-h-96 overflow-y-auto">
+                            <p class="text-gray-500 text-center py-4">아이템 목록을 불러오는 중...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 반별 관리 탭 -->
+                <div id="class-tab" class="admin-tab-panel hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                🏫 반별 관리
+                            </h2>
+                            <button onclick="refreshClassOverview()" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm">
+                                🔄 새로고침
+                            </button>
+                        </div>
+                        
+                        <!-- 반별 현황 -->
+                        <div>
+                            <h3 class="font-bold text-lg mb-4">📊 반별 현황</h3>
+                            <div id="class-overview" class="space-y-3">
+                                <p class="text-gray-500 text-center py-4">반별 데이터를 불러오는 중...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
