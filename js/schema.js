@@ -17,7 +17,12 @@ const TABLE_SCHEMAS = {
         { name: 'price', type: 'number', description: '가격' },
         { name: 'category', type: 'text', description: '카테고리' },
         { name: 'image_url', type: 'rich_text', description: '이미지 URL' },
+        { name: 'drawing_data', type: 'rich_text', description: '캔버스 그림 데이터' },
         { name: 'seller_id', type: 'text', description: '판매자 ID' },
+        { name: 'creator', type: 'text', description: '생성자 학번' },
+        { name: 'sold', type: 'bool', description: '판매 완료 여부' },
+        { name: 'buyer', type: 'text', description: '구매자 학번' },
+        { name: 'views', type: 'number', description: '조회수' },
         { name: 'status', type: 'text', description: '상태 (available/sold)' }
     ],
     transactions: [
