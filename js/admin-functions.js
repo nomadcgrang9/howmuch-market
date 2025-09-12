@@ -455,11 +455,9 @@ async function loadCurrentPointsInfo(studentId) {
             // 입력 필드 초기화
             const adjustmentInput = document.getElementById('point-adjustment');
             const reasonInput = document.getElementById('point-change-reason');
-            const newPointsInput = document.getElementById('new-purchase-points');
             
             if (adjustmentInput) adjustmentInput.value = '';
             if (reasonInput) reasonInput.value = '';
-            if (newPointsInput) newPointsInput.value = '';
             
         } else {
             console.warn('⚠️ 학생 정보를 찾을 수 없습니다:', studentId);
@@ -567,74 +565,25 @@ async function adjustPoints(action) {
     }
 }
 
-// 포인트 직접 설정
-async function savePointChanges() {
-    const modal = document.getElementById('edit-points-modal');
-    const studentId = modal?.getAttribute('data-student-id');
-    const newPointsInput = document.getElementById('new-purchase-points');
-    const reasonInput = document.getElementById('point-change-reason');
-    
-    if (!studentId) {
-        showMessage('학생 정보를 찾을 수 없습니다.', 'error');
-        return;
-    }
-    
-    const newPoints = parseInt(newPointsInput.value);
-    if (newPoints === null || newPoints === undefined || newPoints < 0) {
-        showMessage('유효한 포인트 수를 입력해주세요. (0 이상)', 'error');
-        return;
-    }
-    
-    if (newPoints > 999999) {
-        showMessage('포인트는 999,999P를 초과할 수 없습니다.', 'error');
-        return;
-    }
-    
-    const reason = reasonInput.value || '포인트 직접 설정';
-    
-    try {
-        console.log(`💾 포인트 직접 설정: ${newPoints}P`);
-        
-        // 현재 학생 정보 조회
-        const usersData = await fetchTableData('users');
-        const student = usersData.data.find(user => user.id === studentId);
-        if (!student) {
-            throw new Error('학생 정보를 찾을 수 없습니다.');
-        }
-        
-        const currentPoints = student.purchase_points || 0;
-        
-        if (!confirm(`${student.name}의 구매 포인트를 ${newPoints.toLocaleString()}P로 설정하시겠습니까?\n\n현재: ${currentPoints.toLocaleString()}P → 변경 후: ${newPoints.toLocaleString()}P\n사유: ${reason}`)) {
-            return;
-        }
-        
-        // 포인트 업데이트
-        await updateRecord('users', studentId, {
-            purchase_points: newPoints
-        });
-        
-        alert(`✅ 포인트 설정 완료!\n\n${student.name}의 구매 포인트를 ${newPoints.toLocaleString()}P로 설정했습니다.`);
-        showMessage(`✅ ${student.name} 포인트 설정 완료: ${newPoints.toLocaleString()}P`, 'success');
-        
-        // 모달 닫기
-        closeEditPointsModal();
-        
-        // 학생 목록 새로고침
-        if (typeof loadAdminStudentsList === 'function') {
-            await loadAdminStudentsList();
-        }
-        
-    } catch (error) {
-        console.error('❌ 포인트 설정 오류:', error);
-        showMessage(`포인트 설정 중 오류가 발생했습니다: ${error.message}`, 'error');
-    }
+// 포인트 수정 확인 - 더 이상 직접 설정하지 않고 단순 확인만
+function savePointChanges() {
+    console.log('✅ 포인트 수정 완료 - 모달 닫기');
+    closeEditPointsModal();
 }
 
 // 전역 함수 등록 - DOMContentLoaded 이후 확실하게 등록
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 Admin functions 전역 등록 시작');
     
-    // 새로 추가된 함수들
+    // 핵심 데이터 로딩 함수들 (최우선)
+    window.loadAdminStudentsList = loadAdminStudentsList;
+    window.loadAdminItemsList = loadAdminItemsList;
+    window.loadRecentTransactions = loadRecentTransactions;
+    window.loadMarketStatistics = loadMarketStatistics;
+    window.refreshStudentsList = refreshStudentsList;
+    window.refreshItemsList = refreshItemsList;
+    
+    // 모달 및 상호작용 함수들
     window.showBulkPointGiveModal = showBulkPointGiveModal;
     window.closeBulkPointModal = closeBulkPointModal;
     window.executeBulkPointGive = executeBulkPointGive;
@@ -642,12 +591,19 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showPointHistoryModal = showPointHistoryModal;
     window.loadCurrentPointsInfo = loadCurrentPointsInfo;
     window.closeEditPointsModal = closeEditPointsModal;
-    window.showAdminTab = showAdminTab;
+    window.adjustPoints = adjustPoints;
+    window.savePointChanges = savePointChanges;
     
     console.log('✅ Admin functions 전역 등록 완료');
 });
 
-// 즉시 실행도 추가 (보험용)
+// 즉시 실행도 추가 (보험용) - 핵심 함수들 추가
+window.loadAdminStudentsList = loadAdminStudentsList;
+window.loadAdminItemsList = loadAdminItemsList;
+window.loadRecentTransactions = loadRecentTransactions;
+window.loadMarketStatistics = loadMarketStatistics;
+window.refreshStudentsList = refreshStudentsList;
+window.refreshItemsList = refreshItemsList;
 window.showBulkPointGiveModal = showBulkPointGiveModal;
 window.closeBulkPointModal = closeBulkPointModal;
 window.executeBulkPointGive = executeBulkPointGive;
@@ -655,52 +611,10 @@ window.showEditPointsModal = showEditPointsModal;
 window.showPointHistoryModal = showPointHistoryModal;
 window.loadCurrentPointsInfo = loadCurrentPointsInfo;
 window.closeEditPointsModal = closeEditPointsModal;
-// 관리자 탭 전환 함수
-function showAdminTab(tabName) {
-    console.log(`🔀 관리자 탭 전환: ${tabName}`);
-    
-    // 모든 탭 버튼의 활성화 상태 제거
-    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-        btn.classList.remove('active', 'border-purple-500', 'text-purple-600');
-        btn.classList.add('border-transparent', 'text-gray-500');
-    });
-    
-    // 모든 탭 패널 숨기기
-    document.querySelectorAll('.admin-tab-panel').forEach(panel => {
-        panel.classList.add('hidden');
-    });
-    
-    // 클릭된 탭 버튼 활성화
-    const clickedBtn = event?.currentTarget;
-    if (clickedBtn) {
-        clickedBtn.classList.remove('border-transparent', 'text-gray-500');
-        clickedBtn.classList.add('active', 'border-purple-500', 'text-purple-600');
-    }
-    
-    // 해당 탭 패널 표시
-    const targetPanel = document.getElementById(`${tabName}-tab`);
-    if (targetPanel) {
-        targetPanel.classList.remove('hidden');
-        
-        // 탭별 데이터 로드
-        switch(tabName) {
-            case 'students':
-                if (typeof loadAdminStudentsList === 'function') {
-                    loadAdminStudentsList();
-                }
-                break;
-            case 'items':
-                if (typeof loadAdminItemsList === 'function') {
-                    loadAdminItemsList();
-                }
-                break;
-
-        }
-    } else {
-        console.error(`❌ ${tabName}-tab 패널을 찾을 수 없습니다.`);
-    }
-}
+window.adjustPoints = adjustPoints;
+window.savePointChanges = savePointChanges;
+// 2분할 화면용 - 탭 전환 함수 제거됨 (항상 둘 다 표시)
+// showAdminTab 함수는 더 이상 필요하지 않음
 
 window.adjustPoints = adjustPoints;
 window.savePointChanges = savePointChanges;
-window.showAdminTab = showAdminTab;
